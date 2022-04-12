@@ -1,0 +1,15 @@
+<Macro ReactDevTools $serverName $path>
+    SetOutputFilter SUBSTITUTE;DEFLATE
+
+    <If "%{REQUEST_URI} == '/$path'">
+        RewriteEngine On
+        RewriteCond %{HTTP:Upgrade} =websocket [NC]
+        RewriteRule /(.*)           ws://172.17.0.1:8097/$1 [P,L]
+        RewriteCond %{HTTP:Upgrade} !=websocket [NC]
+        RewriteRule /(.*)           http://172.17.0.1:8097/$1 [P,L]
+
+        Substitute "s|\"ws://\"+p+\":\"+h|\"wss://$serverName:443/$path\"|in"
+    </If>
+
+    Substitute "s|<head>|<head><script src=\"/$path\" />|in"
+</Macro>

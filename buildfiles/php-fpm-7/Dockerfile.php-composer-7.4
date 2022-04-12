@@ -1,0 +1,53 @@
+FROM php:7.4-cli
+
+# Add required system packages
+RUN apt-get update && apt-get install -y \
+        net-tools \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        zlib1g-dev \
+        libicu-dev \
+        libldap2-dev \
+        libbz2-dev \
+        libzip-dev \
+        zip \
+        libcurl3-dev \
+        libxml2-dev \
+        libedit-dev \
+        msmtp \
+        wget \
+        xfonts-75dpi \
+        xfonts-base \
+        gvfs \
+        colord \
+        glew-utils \
+        libvisual-0.4-plugins \
+        gstreamer1.0-tools \
+        opus-tools \
+        qt5-image-formats-plugins \
+        qtwayland5 \
+        qt5-qmltooling-plugins \
+        librsvg2-bin \
+        lm-sensors \
+        libonig-dev
+
+# Configure PHP modules
+RUN docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-configure zip
+
+# Install PHP modules
+# We also -j$(nproc) so the docker-php-ext-install knows how many processors can be used to compile modules
+RUN docker-php-ext-install -j$(nproc) gd opcache ldap mysqli iconv pdo pdo_mysql intl bcmath json opcache zip bz2 readline xml mbstring curl
+
+# Install WKHTMLTOPDF QT ptached
+RUN wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb
+RUN dpkg -i wkhtmltox_0.12.5-1.stretch_amd64.deb
+RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
+RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
+
+COPY ./bin/php-fpm-entrypoint.sh /
+
+CMD ["/php-fpm-entrypoint.sh"]

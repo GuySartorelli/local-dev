@@ -1,0 +1,18 @@
+FROM ubuntu:14.04
+
+RUN ln -snf /bin/bash /bin/sh
+
+RUN apt-get update && apt-get -y install software-properties-common
+
+RUN add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu trusty main restricted universe multiverse" && \
+    add-apt-repository -y "deb http://archive.ubuntu.com/ubuntu trusty-updates main restricted universe multiverse"
+
+RUN apt-get update && apt-get -y upgrade && DEBIAN_FRONTEND=noninteractive apt-get -y install apache2 libapache2-mod-fastcgi
+
+RUN a2enmod rewrite fastcgi alias
+
+ADD buildfiles/apache-2.4/apache2-foreground /usr/local/bin/
+
+RUN chmod 755 /usr/local/bin/apache2-foreground
+
+CMD ["/usr/local/bin/apache2-foreground"]

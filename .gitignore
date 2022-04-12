@@ -1,0 +1,4 @@
+/persistent/
+/config/apache-2.4/ssl/
+/config/apache-2.4/sites-enabled/
+/config/apache-2.4/sites-available/

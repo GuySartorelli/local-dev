@@ -1,0 +1,75 @@
+FROM php:8.0-fpm
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY ./buildfiles/bin/run-behat.sh /usr/bin/
+
+# Add required system packages
+RUN apt-get update && apt-get install -y \
+        net-tools \
+        libfreetype6-dev \
+        libjpeg62-turbo-dev \
+        libpng-dev \
+        zlib1g-dev \
+        libicu-dev \
+        libldap2-dev \
+        libbz2-dev \
+        libzip-dev \
+        zip \
+        libcurl3-dev \
+        libxml2-dev \
+        libedit-dev \
+        msmtp \
+        wget \
+        xfonts-75dpi \
+        xfonts-base \
+        gvfs \
+        colord \
+        glew-utils \
+        libvisual-0.4-plugins \
+        gstreamer1.0-tools \
+        opus-tools \
+        qt5-image-formats-plugins \
+        qtwayland5 \
+        qt5-qmltooling-plugins \
+        librsvg2-bin \
+        lm-sensors \
+        libonig-dev
+
+# Configure PHP modules
+RUN docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-configure zip
+
+# Install PHP modules
+# We also -j$(nproc) so the docker-php-ext-install knows how many processors can be used to compile modules
+RUN docker-php-ext-install -j$(nproc) gd opcache ldap mysqli iconv pdo_mysql intl bcmath zip bz2 ctype fileinfo mbstring pdo tokenizer xml
+
+# Install WKHTMLTOPDF QT ptached
+RUN wget https://github.com/wkhtmltopdf/wkhtmltopdf/releases/download/0.12.5/wkhtmltox_0.12.5-1.stretch_amd64.deb
+RUN dpkg -i wkhtmltox_0.12.5-1.stretch_amd64.deb
+RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
+RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
+
+# Install chrome and dependencies
+RUN apt-get install -y fonts-liberation xdg-utils
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+RUN dpkg -i google-chrome-stable_current_amd64.deb
+# Install and verify version of chromedriver
+RUN BROWSER_MAJOR=$(google-chrome --version | sed 's/Google Chrome \([0-9]*\).*/\1/g') \
+    && wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${BROWSER_MAJOR} -O chrome_version \
+    && wget https://chromedriver.storage.googleapis.com/`cat chrome_version`/chromedriver_linux64.zip \
+    && unzip chromedriver_linux64.zip \
+    && mv chromedriver /usr/local/bin/ \
+    && DRIVER_MAJOR=$(chromedriver --version | sed 's/ChromeDriver \([0-9]*\).*/\1/g') \
+    && echo "chrome version: $BROWSER_MAJOR" \
+    && echo "chromedriver version: $DRIVER_MAJOR" \
+    && if [ $BROWSER_MAJOR != $DRIVER_MAJOR ]; then echo "VERSION MISMATCH"; exit 1; fi
+
+# Xdebug
+RUN pecl install xdebug
+
+COPY ./buildfiles/bin/php-fpm-entrypoint.sh /
+
+CMD ["/php-fpm-entrypoint.sh"]

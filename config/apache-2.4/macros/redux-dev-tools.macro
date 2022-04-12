@@ -1,0 +1,9 @@
+<Macro ReduxDevTools>
+    <If "%{REQUEST_URI} == '/socketcluster/'">
+        RewriteEngine On
+        RewriteCond %{HTTP:Upgrade} =websocket [NC]
+        RewriteRule /(.*)           ws://172.17.0.1:8098/socketcluster/ [P,L]
+        RewriteCond %{HTTP:Upgrade} !=websocket [NC]
+        RewriteRule /(.*)           http://172.17.0.1:8098/socketcluster/ [P,L]
+    </If>
+</Macro>
