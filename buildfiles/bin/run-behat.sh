@@ -11,12 +11,12 @@ export SS_BASE_URL="http://localhost:8080/"
 export SS_ENVIRONMENT_TYPE="dev"
 
 # Start chrome in a different session
-chromedriver > /dev/null &
+chromedriver > /var/log/php/chromedriver.log & #> /dev/null &
 #chromium.chromedriver > /dev/null &
 CHROME_PID=$!
 
 # Start web server in a different proccess
-vendor/bin/serve --bootstrap-file vendor/silverstripe/cms/tests/behat/serve-bootstrap.php > /dev/null &
+vendor/bin/serve --bootstrap-file vendor/silverstripe/cms/tests/behat/serve-bootstrap.php > /var/log/php/behatserver.log & #/dev/null &
 SERVER_PID=$!
 
 # Wait a bit to make sure everything has been initialised

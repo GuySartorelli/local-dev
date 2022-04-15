@@ -34,7 +34,8 @@ RUN apt-get update && apt-get install -y \
         qt5-qmltooling-plugins \
         librsvg2-bin \
         lm-sensors \
-        libonig-dev
+        libonig-dev \
+		nano
 
 # Configure PHP modules
 RUN docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \

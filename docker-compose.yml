@@ -83,6 +83,7 @@ services:
      - solr:/var/solr/cores
      - ./config/msmtp/msmtprc:/etc/msmtprc
      - ./faketimerc:/etc/faketimerc
+     - ./persistent/logs/php7.4:/var/log/php
     restart: always
     user: "${WWWUID}"
     links:
@@ -109,6 +110,7 @@ services:
      - solr:/var/solr/cores
      - ./config/msmtp/msmtprc:/etc/msmtprc
      - ./faketimerc:/etc/faketimerc
+     - ./persistent/logs/php8.0:/var/log/php
     restart: always
     user: "${WWWUID}"
     links:
