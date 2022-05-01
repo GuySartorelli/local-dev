@@ -4,7 +4,7 @@ FROM ubuntu:20.04
 # Switched back to 18.04 cos libapache2-mod-php7.2 (amonst other things?) no longer installed
 # and xdebug php7.1-xdebug somehow started working again
 
-# ! Increment `RUN apt-get update && echo [n]` << if you have issues with apt-get update
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 MAINTAINER Guy Sartorelli <guy.sartorelli@gmail.com>
 
@@ -28,6 +28,9 @@ RUN add-apt-repository -y ppa:ondrej/apache2
 # Increment echo int to force an update when adding new packages for installation
 RUN apt-get update && echo 7 > /dev/null
 
+# Needed for a couple of the installs
+RUN apt-get install -y wget
+
 # Set this arg so that apt-utils does not cause other warnings
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -36,8 +39,22 @@ RUN apt-get install -y apt-utils
 
 RUN apt-get install -y apache2
 
-RUN apt-get install -y chromium-browser
-RUN apt-get install -y chromium-chromedriver
+#RUN apt-get install -y chromium-browser
+#RUN apt-get install -y chromium-chromedriver
+# Install chrome, chromedriver, and dependencies
+RUN apt-get install -y fonts-liberation xdg-utils libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 libcairo2 libcups2 libgbm1 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libxdamage1 libxkbcommon0 unzip
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+RUN dpkg -i google-chrome-stable_current_amd64.deb
+# Install and verify version of chromedriver
+RUN BROWSER_MAJOR=$(google-chrome --version | sed 's/Google Chrome \([0-9]*\).*/\1/g') \
+    && wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${BROWSER_MAJOR} -O chrome_version \
+    && wget https://chromedriver.storage.googleapis.com/`cat chrome_version`/chromedriver_linux64.zip \
+    && unzip chromedriver_linux64.zip \
+    && mv chromedriver /usr/local/bin/ \
+    && DRIVER_MAJOR=$(chromedriver --version | sed 's/ChromeDriver \([0-9]*\).*/\1/g') \
+    && echo "chrome version: $BROWSER_MAJOR" \
+    && echo "chromedriver version: $DRIVER_MAJOR" \
+    && if [ $BROWSER_MAJOR != $DRIVER_MAJOR ]; then echo "VERSION MISMATCH"; exit 1; fi
 
 # mailhog
 RUN apt-get install -y golang-go
@@ -113,17 +130,16 @@ RUN ln -s /etc/apache2/mods-available/php8.0.conf /etc/apache2/mods-enabled/php8
 RUN ln -s /etc/apache2/mods-available/php8.0.load /etc/apache2/mods-enabled/php8.0.load
 
 # Install other packages
-RUN apt-get install -y nano wget
+RUN apt-get install -y nano
 
 # Install WKHTMLTOPDF QT ptached
-RUN apt-get install -y wget fontconfig libxrender1 xfonts-75dpi xfonts-base
+RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
 RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
 RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
 RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
 RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
 
-#TODO: Could not reliably determine the server's fully qualified domain name, using 172.18.0.4. Set the 'ServerName' directive globally to suppress this message
-
+# Put localhost in place
 COPY docker_apache_default /etc/apache2/sites-available/000-default.conf
 RUN a2enmod rewrite
 
@@ -146,4 +162,9 @@ RUN userdel -f www-data &&\
 # Bash script - anything else that's just easier to write in raw bash than dockerfile
 COPY docker_bash_script /usr/local/bin/docker_bash_script
 RUN chmod +x /usr/local/bin/docker_bash_script
-CMD ["/usr/local/bin/docker_bash_script"]
+RUN /usr/local/bin/docker_bash_script
+RUN rm /usr/local/bin/docker_bash_script
+
+COPY entrypoint /usr/local/bin/start_container
+RUN chmod +x /usr/local/bin/start_container
+CMD ["/usr/local/bin/start_container"]

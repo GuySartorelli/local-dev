@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+use DevTools\Command\CreateSilverstripeEnv;
+use DevTools\Utility\Config;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputDefinition;
+use Symfony\Component\Console\Input\InputOption;
+
+Config::init();
+
+$application = new Application('Dev Tools');
+
+// Remove a bunch of unnecessary options (verbose, version, etc)
+$application->setDefinition(
+    new InputDefinition([
+        new InputArgument('command', InputArgument::REQUIRED, 'The command to execute'),
+        new InputOption(
+            '--help',
+            '-h',
+            InputOption::VALUE_NONE,
+            'Display help for the given command. When no command is given display help for the <info>list</info> command'
+        ),
+    ])
+);
+
+// Add custom commands
+$application->addCommands([
+    new CreateSilverstripeEnv(),
+]);
+
+// start
+$application->run();

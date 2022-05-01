@@ -1,8 +1,10 @@
 #!/bin/bash
 
+# NOTE: Avoid installing any packages here - use Dockerfile for that so that they are cached.
+
 enable_xdebug=false
 
-# set -e -- Exit immediately if a command exits with a non-zero status.
+# Exit immediately if a command exits with a non-zero status.
 set -e
 
 PHP_ERROR_REPORTING=${PHP_ERROR_REPORTING:-"E_ALL"}
@@ -10,7 +12,7 @@ PHP_ERROR_REPORTING=${PHP_ERROR_REPORTING:-"E_ALL"}
 versions="7.4 7.5 8.0 8.1 8.2 8.3 8.4"
 types="apache2 cli"
 # https://xdebug.org/docs/upgrade_guide
-xdebug3_options="xdebug.mode ;xdebug.mode xdebug.output_dir xdebug.start_with_request xdebug.discover_client_host xdebug.client_host xdebug.client_port"
+xdebug3_options="xdebug.mode ;xdebug.mode xdebug.output_dir xdebug.start_with_request ;xdebug.discover_client_host xdebug.client_host xdebug.client_port"
 for version in $versions; do
 
     # Configure:
@@ -44,23 +46,25 @@ for version in $versions; do
     for type in $types; do
         path="/etc/php/$version/$type/php.ini"
         if [ -f "$path" ]; then
+		    if ! grep -r "[XDebug]" "$path" > /dev/null; then
+				echo "[XDebug]" >> "$path"
+			fi
 			for option in $xdebug3_options; do
-				value="On"
+				value="yes"
 				if [[ "$option" == "xdebug.client_host" ]]; then
 					value="172.17.0.1"
 				fi
 				if [[ "$option" == "xdebug.mode" ]]; then
-					value="debug,develop"
+					value="debug"
 				fi
-				# Uncomment manually via dshr nano /etc/php/7.4/(apache2|cli)/php.ini
 				if [[ "$option" == ";xdebug.mode" ]]; then
-					value="debug,develop,profile"
+					value="debug,profile"
 				fi
 				if [[ "$option" == "xdebug.output_dir" ]]; then
 					value="/var/www/kcachegrind"
 				fi
 				if [[ "$option" == "xdebug.client_port" ]]; then
-					value="9000"
+					value="9003"
 				fi
 				if grep -r "$option" "$path" > /dev/null; then
 					sed -i "s/$option =.*/$option = $value/g" "$path"
@@ -71,19 +75,3 @@ for version in $versions; do
         fi
     done
 done
-
-# Mailhog - will install binaries to /home/www-data/go/bin
-# bugfix[n].test:8025 for dashboard
-runuser -l www-data -c 'go get github.com/mailhog/MailHog'
-runuser -l www-data -c 'go get github.com/mailhog/mhsendmail'
-runuser -l www-data -c 'nohup sh -c "/home/www-data/go/bin/MailHog" > /dev/null 2>&1 &'
-
-# Apache gets grumpy about PID files pre-existing, so remove them:
-rm -f /var/run/apache2/apache2.pid
-
-# Read default envvars, which includes APACHE_RUN_USER/GROUP=www-data
-source /etc/apache2/envvars
-
-# Start apache
-# It seems like -DFOREGROUND is required for the container to work correctly
-exec /usr/sbin/apache2 -DFOREGROUND

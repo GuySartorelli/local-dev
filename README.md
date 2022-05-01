@@ -1,6 +1,7 @@
 ## Setup
 - Run build.sh
-- Run `ln -s /path/to/this/dir/bin/run-php-script.sh /usr/local/bin/run-php-script`
+- Add the bin directory to $PATH in your .bashrc
+  - e.g.: `export PATH=$PATH:/home/gsartorelli/local-dev/bin`
 
 ## Usage
 Run start.sh to run local dev environment.
