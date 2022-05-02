@@ -1,13 +1,13 @@
-# bugfix14 example:
+# sink_4-x_14 example:
 # webserver:  10.0.14.50
 # database:   10.0.14.51 root:root
 # phpmyadmin: 10.0.14.52 root:root
 
 # ssh
-# docker exec -it bugfix(BUGFIX_NUM)_webserver sh -c "cd /var/www && su -s /bin/bash www-data"
+# docker exec -it ${PROJECT_NAME}_webserver sh -c "cd /var/www && su -s /bin/bash www-data"
 
 # mysql
-# mysql -h0.0.0.0 -P33(BUGFIX_NUM) -DSS_mysite -uroot -proot
+# mysql -h0.0.0.0 -P33${SUFFIX} -DSS_mysite -uroot -proot
 
 # if docker complains about the "version" not being supported, then install that latest version of docker-compose
 # https://docs.docker.com/compose/install/
@@ -17,22 +17,22 @@ version: '3.8'
 services:
 
   webserver:
-    container_name: bugfix(BUGFIX_NUM)_webserver
+    container_name: ${PROJECT_NAME}_webserver
     build:
       context: .
     volumes:
       - ../www/:/var/www
       - ../logs/apache:/var/log/apache2
-    domainname: bugfix(BUGFIX_NUM).test
+    domainname: ${PROJECT_NAME}.test
     hostname: www
     environment:
       APACHE_LOG_DIR: "/var/log/apache2"
     networks:
       mynet:
-        ipv4_address: 10.0.(BUGFIX_NUM).50
+        ipv4_address: ${IP_PREFIX}.50
 
   mariadb:
-    container_name: bugfix(BUGFIX_NUM)_mariadb
+    container_name: ${PROJECT_NAME}_mariadb
     image: mariadb:10.5.2
     # If changing database version after a container has already been created
     # it seems necessary to run something like `dqx` and rebuild everything.
@@ -45,26 +45,26 @@ services:
       MYSQL_ROOT_PASSWORD: "root"
       MYSQL_DATABASE: 'SS_mysite'
     # use ports instead of IP address for database connection
-    # example: bugfix14 connect on 0.0.0.0:3314
+    # example: sink_4-x_14 connect on 0.0.0.0:3314
     ports:
-      - 33(BUGFIX_NUM):3306
+      - 33${SUFFIX}:3306
     networks:
       mynet:
 
 volumes:
   mariadb-volume:
-    name: bugfix(BUGFIX_NUM)_mariadb-volume
+    name: ${PROJECT_NAME}_mariadb-volume
 
 networks:
   mynet:
-    name: bugfix(BUGFIX_NUM)_mynet
+    name: ${PROJECT_NAME}_mynet
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: 10.0.(BUGFIX_NUM).0/24
+        - subnet: ${IP_PREFIX}.0/24
 
-# (will automatically create a bugfix(BUGFIX_NUM)_default network, name is based on the directory)
+# (will automatically create a ${PROJECT_NAME}_default network, name is based on the directory)
 
 # If you get "cannot create network" issues - probably need to remove previously created stuff on the network:
 # docker ps -a

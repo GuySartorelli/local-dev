@@ -12,6 +12,14 @@ final class Path
     public static function join(array $paths): string
     {
         $parts = array_filter(array_map('trim', $paths));
-        return rtrim(implode(DIRECTORY_SEPARATOR, $parts), DIRECTORY_SEPARATOR);
+        return self::normalise(implode(DIRECTORY_SEPARATOR, $parts));
+    }
+
+    public static function normalise(string $path): string
+    {
+        $path = rtrim($path, DIRECTORY_SEPARATOR);
+        $path = preg_replace('#[/\\\\]{2,}#', DIRECTORY_SEPARATOR, $path);
+        $user = get_current_user();
+        return preg_replace('/^~\//', "/home/$user/", $path);
     }
 }

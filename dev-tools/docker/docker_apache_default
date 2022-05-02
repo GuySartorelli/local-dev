@@ -1,5 +1,5 @@
 <VirtualHost *:80>
-# The ServerName directive sets the request scheme, hostname and port that
+    # The ServerName directive sets the request scheme, hostname and port that
 	# the server uses to identify itself. This is used when creating
 	# redirection URLs. In the context of virtual hosts, the ServerName
 	# specifies what hostname must appear in the request's Host: header to
@@ -7,7 +7,7 @@
 	# value is not decisive as it is used as a last resort host regardless.
 	# However, you must set it for any further virtual host explicitly.
 
-	ServerName bugfix(BUGFIX_NUM).test
+	ServerName ${HOST_NAME}
 
 	ServerAdmin webmaster@localhost
 	DocumentRoot /var/www
@@ -33,30 +33,5 @@
 	# after it has been globally disabled with "a2disconf".
 	#Include conf-available/serve-cgi-bin.conf
 </VirtualHost>
-
-
-<VirtualHost *:443>
-	ServerName bugfix(BUGFIX_NUM).test
-	ServerAdmin webmaster@localhost
-	DocumentRoot /var/www
-    <Directory /var/www>
-        AllowOverride All
-        Require all granted
-    </Directory>
-    ErrorLog /dev/stdout
-    CustomLog /dev/stdout combined
-	
-	# sboyd - SSLEngine on was what was causing issues on vcr docker container being down straight away
-	# surprisingly, I can still connect to the https site with this commented out
-    # SSLEngine on
-    #SSLCertificateFile /etc/ssl/certs/ssl-cert-snakeoil.pem
-    #SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
-
-    # TODO: get self-signed cert working so hopefully don't get security warning
-    # see docker_steve_script
-    #SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
-    #SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
-</VirtualHost>
-
 
 # vim: syntax=apache ts=4 sw=4 sts=4 sr noet

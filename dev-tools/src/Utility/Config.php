@@ -74,7 +74,7 @@ final class Config
     {
         $suffixes = self::getConfig()[self::SUFFIX_KEY];
         ksort($suffixes);
-        $available = array_map(fn(bool $available): bool => $available, $suffixes);
+        $available = array_filter($suffixes, fn(bool $taken): bool => !$taken);
         $next = array_key_first($available);
         return $next;
     }
@@ -152,7 +152,7 @@ final class Config
      *
      * @throws InvalidArgumentException
      */
-    private function validateSuffix(string $suffix): void
+    private static function validateSuffix(string $suffix): void
     {
         // Validate suffix
         if (!preg_match('/\d{2}/', $suffix)) {

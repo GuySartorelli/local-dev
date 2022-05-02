@@ -22,7 +22,7 @@ for version in $versions; do
         path="/etc/php/$version/$type/php.ini"
         if [[ -f "/etc/php/$version/$type/php.ini" ]]; then
             sed -ri 's/^display_errors\s*=\s*Off/display_errors = On/g' "$path"
-            sed -ri "/^error_reporting\s*=.*$/gd" "$path"
+            sed -ri "/^error_reporting\s*=.*$/d" "$path"
             echo "error_reporting = $PHP_ERROR_REPORTING" >> "$path"
             echo "upload_max_filesize = 50M" >> "$path"
         fi

@@ -5,9 +5,9 @@
 			"name": "Listen for Xdebug",
 			"type": "php",
 			"request": "launch",
-			"port": 9000,
+			"port": 9003,
 			"sourceFileMap": {
-				"/var/www": "{workspaceFolder}"
+				"/var/www": "${PROJECT_DIR}/www"
 			}
 		}
 	]
