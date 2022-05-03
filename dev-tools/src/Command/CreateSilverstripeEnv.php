@@ -66,7 +66,10 @@ class CreateSilverstripeEnv extends Command
         }
 
         // Prepare composer command
-        $composerArgs = ['--no-interaction'];
+        $composerArgs = [
+            '--no-interaction',
+            ...explode(' ', $input->getOption('composer-args') ?? '')
+        ];
         if ($input->getOption('prefer-source')) {
             $composerArgs[] = '--prefer-source';
         }
@@ -279,6 +282,13 @@ class CreateSilverstripeEnv extends Command
             InputOption::VALUE_REQUIRED,
             'The version constraint to use for the installed recipe.',
             Config::getEnv('DT_DEFAULT_INSTALL_VERSION')
+        );
+        $this->addOption(
+            'composer-args',
+            'null',
+            InputOption::VALUE_OPTIONAL,
+            'Any additional arguments to be passed to the composer create-project command.',
+            ''
         );
         $this->addOption(
             'prefer-source',
