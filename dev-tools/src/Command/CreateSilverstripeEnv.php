@@ -110,7 +110,7 @@ class CreateSilverstripeEnv extends Command
             ];
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($webDir, $file);
-                $this->replaceStrings($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
+                $this->replacePlaceholders($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
             }
 
             // Setup docker files
@@ -125,7 +125,7 @@ class CreateSilverstripeEnv extends Command
             ];
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($dockerDir, $file);
-                $this->replaceStrings($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
+                $this->replacePlaceholders($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
             }
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t set up docker or webroot files: ' . $e->getMessage());
@@ -184,11 +184,11 @@ class CreateSilverstripeEnv extends Command
     }
 
     /**
-     * Undocumented function
+     * Replace context-specific placeholders with the relevant bits
      *
      * @throws IOException
      */
-    protected function replaceStrings(string $filePath, string $projectName, string $projectPath, string $suffix, string $hostname, string $ipAddress): void
+    protected function replacePlaceholders(string $filePath, string $projectName, string $projectPath, string $suffix, string $hostname, string $ipAddress): void
     {
         $ipParts = explode('.', $ipAddress);
         array_pop($ipParts);
