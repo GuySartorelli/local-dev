@@ -193,10 +193,12 @@ class CreateSilverstripeEnv extends Command
         $ipParts = explode('.', $ipAddress);
         array_pop($ipParts);
         $ipPrefix = implode('.', $ipParts);
+        $hostParts = explode('.', $hostname);
         $content = file_get_contents($filePath);
         $content = str_replace('${PROJECT_NAME}', $projectName, $content);
         $content = str_replace('${SUFFIX}', $suffix, $content);
         $content = str_replace('${HOST_NAME}', $hostname, $content);
+        $content = str_replace('${HOST_SUFFIX}', array_pop($hostParts), $content);
         $content = str_replace('${PROJECT_DIR}', $projectPath, $content);
         $content = str_replace('${IP_PREFIX}', $ipPrefix, $content);
         $this->filesystem->dumpFile($filePath, $content);

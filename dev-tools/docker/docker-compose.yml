@@ -23,8 +23,8 @@ services:
     volumes:
       - ../www/:/var/www
       - ../logs/:/var/log
-    domainname: ${PROJECT_NAME}.test
-    hostname: www
+    domainname: ${HOST_SUFFIX}
+    hostname: ${PROJECT_NAME}
     environment:
       APACHE_LOG_DIR: "/var/log/apache2"
     networks:
