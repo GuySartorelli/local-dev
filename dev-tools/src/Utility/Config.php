@@ -6,6 +6,7 @@ use InvalidArgumentException;
 use LogicException;
 use stdClass;
 use Symfony\Component\Dotenv\Dotenv;
+use Symfony\Component\Filesystem\Path;
 
 /**
  * Utitilty class for getting and setting config
@@ -35,9 +36,9 @@ final class Config
         $baseDir = self::getBaseDir();
         // Boot environment variables
         $envConfig = new Dotenv();
-        $envConfig->bootEnv(Path::join([$baseDir, '.env']));
+        $envConfig->bootEnv(Path::join($baseDir, '.env'));
         // Set up JSON config file
-        self::$fileName = Path::join([$baseDir, 'projectsConfig.json']);
+        self::$fileName = Path::join($baseDir, 'projectsConfig.json');
         if (!file_exists(self::$fileName)) {
             touch(self::$fileName);
             file_put_contents(self::$fileName, json_encode([

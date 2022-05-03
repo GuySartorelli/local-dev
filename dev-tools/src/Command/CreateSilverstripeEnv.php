@@ -3,7 +3,6 @@
 namespace DevTools\Command;
 
 use DevTools\Utility\Config;
-use DevTools\Utility\Path;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
@@ -14,6 +13,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
 class CreateSilverstripeEnv extends Command
@@ -51,10 +51,7 @@ class CreateSilverstripeEnv extends Command
 
         // Prepare project dir
         $projectName = $this->getProjectName($input) . '_' . $suffix;
-        $projectPath = Path::join([
-            $input->getOption('project-path'),
-            $projectName,
-        ]);
+        $projectPath = Path::join($input->getOption('project-path'), $projectName);
         if (is_dir($projectPath)) {
             $output->writeln('ERROR: Project path already exists: ' . $projectPath);
             return Command::FAILURE;
@@ -73,7 +70,7 @@ class CreateSilverstripeEnv extends Command
         if ($input->getOption('prefer-source')) {
             $composerArgs[] = '--prefer-source';
         }
-        $webDir = Path::join([$projectPath, 'www']);
+        $webDir = Path::join($projectPath, 'www');
         $composerCommand = [
             'composer',
             'create-project',
@@ -104,15 +101,15 @@ class CreateSilverstripeEnv extends Command
             'launch.json',
         ];
         foreach ($filesWithPlaceholders as $file) {
-            $filePath = Path::join([$webDir, $file]);
-            copy(Path::join([Config::getBaseDir(), 'webroot', $file]), $filePath);
+            $filePath = Path::join($webDir, $file);
+            copy(Path::join(Config::getBaseDir(), 'webroot', $file), $filePath);
             $this->replaceStrings($filePath, $projectName, $suffix, $hostname, $ipAddress);
         }
 
         // Setup docker files
-        $dockerDir = Path::join([$projectPath, 'docker']);
+        $dockerDir = Path::join($projectPath, 'docker');
         $output->writeln('Preparing docker directory');
-        $copyFrom = Path::join([Config::getBaseDir(), 'docker/']);
+        $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
         exec("cp -R $copyFrom $dockerDir", $execOut, $exit);
         if ($execOut) {
             $output->writeln($execOut);
