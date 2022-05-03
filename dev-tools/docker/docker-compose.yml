@@ -22,7 +22,7 @@ services:
       context: .
     volumes:
       - ../www/:/var/www
-      - ../logs/apache:/var/log/apache2
+      - ../logs/:/var/log
     domainname: ${PROJECT_NAME}.test
     hostname: www
     environment:

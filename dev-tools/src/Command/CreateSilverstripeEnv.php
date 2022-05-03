@@ -13,6 +13,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
@@ -34,6 +36,8 @@ class CreateSilverstripeEnv extends Command
      * Characters that cannot be used for a project name
      */
     protected static string $invalidProjectNameChars = ' !@#$%^&*()"\',.<>/?:;';
+
+    private Filesystem $filesystem;
 
     /**
      * @inheritDoc
@@ -57,10 +61,11 @@ class CreateSilverstripeEnv extends Command
             return Command::FAILURE;
         }
         $output->writeln("Making directory '$projectPath'");
-        $success = mkdir($projectPath);
-        if (!$success) {
-            // TODO revert to original state
-            $output->writeln('ERROR: Couldn\'t create project directory.');
+        try {
+            $logsDir = Path::join($projectPath, 'logs');
+            $this->filesystem->mkdir([$projectPath, $logsDir, Path::join($logsDir, 'apache2')]);
+        } catch (IOException $e) {
+            $output->writeln('ERROR: Couldn\'t create project directory: ' . $e->getMessage());
             Config::releaseSuffix($suffix);
             return Command::FAILURE;
         }
@@ -90,47 +95,43 @@ class CreateSilverstripeEnv extends Command
             // TODO revert to original state.
             $output->writeln('ERROR: Couldn\'t create composer project.');
             Config::releaseSuffix($suffix);
-            rmdir($projectPath);
+            $this->filesystem->remove($projectPath);
             return Command::FAILURE;
         }
 
         $hostname = $projectName . '.' . $input->getOption('host-suffix');
 
-        // Setup environment-specific web files
-        $output->writeln('Preparing extra webroot files');
-        $filesWithPlaceholders = [
-            '.env',
-            'behat.yml',
-            'launch.json',
-        ];
-        foreach ($filesWithPlaceholders as $file) {
-            $filePath = Path::join($webDir, $file);
-            copy(Path::join(Config::getBaseDir(), 'webroot', $file), $filePath);
-            $this->replaceStrings($filePath, $projectName, $suffix, $hostname, $ipAddress);
-        }
+        try {
+            // Setup environment-specific web files
+            $output->writeln('Preparing extra webroot files');
+            $this->filesystem->mirror(Path::join(Config::getBaseDir(), 'webroot'), $webDir);
+            $filesWithPlaceholders = [
+                '.env',
+            ];
+            foreach ($filesWithPlaceholders as $file) {
+                $filePath = Path::join($webDir, $file);
+                $this->replaceStrings($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
+            }
 
-        // Setup docker files
-        $dockerDir = Path::join($projectPath, 'docker');
-        $output->writeln('Preparing docker directory');
-        $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
-        exec("cp -R $copyFrom $dockerDir", $execOut, $exit);
-        if ($execOut) {
-            $output->writeln($execOut);
-        }
-        if ($exit !== 0) {
-            $output->writeln('ERROR: Couldn\'t set up docker files.');
+            // Setup docker files
+            $dockerDir = Path::join($projectPath, 'docker');
+            $output->writeln('Preparing docker directory');
+            $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
+            $this->filesystem->mirror($copyFrom, $dockerDir);
+            $filesWithPlaceholders = [
+                'docker_apache_default',
+                'docker-compose.yml',
+                'entrypoint',
+            ];
+            foreach ($filesWithPlaceholders as $file) {
+                $filePath = Path::join($dockerDir, $file);
+                $this->replaceStrings($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
+            }
+        } catch (IOException $e) {
+            $output->writeln('ERROR: Couldn\'t set up docker or webroot files: ' . $e->getMessage());
+            $this->filesystem->remove($projectPath);
             Config::releaseSuffix($suffix);
-            rmdir($projectPath);
             return Command::FAILURE;
-        }
-        $filesWithPlaceholders = [
-            'docker_apache_default',
-            'docker-compose.yml',
-            'entrypoint',
-        ];
-        foreach ($filesWithPlaceholders as $file) {
-            $filePath = Path::join([$dockerDir, $file]);
-            $this->replaceStrings($filePath, $projectName, $suffix, $hostname, $ipAddress);
         }
 
         // Start docker image
@@ -182,7 +183,12 @@ class CreateSilverstripeEnv extends Command
         return !$hadError;
     }
 
-    protected function replaceStrings(string $filePath, string $projectName, string $suffix, string $hostname, string $ipAddress): void
+    /**
+     * Undocumented function
+     *
+     * @throws IOException
+     */
+    protected function replaceStrings(string $filePath, string $projectName, string $projectPath, string $suffix, string $hostname, string $ipAddress): void
     {
         $ipParts = explode('.', $ipAddress);
         array_pop($ipParts);
@@ -191,8 +197,9 @@ class CreateSilverstripeEnv extends Command
         $content = str_replace('${PROJECT_NAME}', $projectName, $content);
         $content = str_replace('${SUFFIX}', $suffix, $content);
         $content = str_replace('${HOST_NAME}', $hostname, $content);
+        $content = str_replace('${PROJECT_DIR}', $projectPath, $content);
         $content = str_replace('${IP_PREFIX}', $ipPrefix, $content);
-        file_put_contents($filePath, $content);
+        $this->filesystem->dumpFile($filePath, $content);
     }
 
     /**
@@ -237,6 +244,8 @@ class CreateSilverstripeEnv extends Command
      */
     protected function configure(): void
     {
+        $this->filesystem = new Filesystem();
+
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc
