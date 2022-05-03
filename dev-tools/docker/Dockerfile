@@ -1,12 +1,6 @@
-# FROM ubuntu:20.04
-# Using 20.04 instead of 18.04 because the php7.1-xdebug stopped working
 FROM ubuntu:20.04
-# Switched back to 18.04 cos libapache2-mod-php7.2 (amonst other things?) no longer installed
-# and xdebug php7.1-xdebug somehow started working again
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
-MAINTAINER Guy Sartorelli <guy.sartorelli@gmail.com>
 
 VOLUME ["/var/www"]
 
@@ -117,7 +111,7 @@ RUN apt-get install -y php8.1-tidy
 RUN apt-get install -y php8.1-xdebug
 RUN apt-get install -y php8.1-zip
 
-# PHP CLI 
+# PHP CLI
 # Use php8.0 by default
 RUN rm /etc/alternatives/php
 RUN ln -s /usr/bin/php8.0 /etc/alternatives/php
