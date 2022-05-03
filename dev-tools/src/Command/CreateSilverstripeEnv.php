@@ -104,7 +104,7 @@ class CreateSilverstripeEnv extends Command
         try {
             // Setup environment-specific web files
             $output->writeln('Preparing extra webroot files');
-            $this->filesystem->mirror(Path::join(Config::getBaseDir(), 'webroot'), $webDir);
+            $this->filesystem->mirror(Path::join(Config::getBaseDir(), 'webroot'), $webDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 '.env',
             ];
@@ -117,7 +117,7 @@ class CreateSilverstripeEnv extends Command
             $dockerDir = Path::join($projectPath, 'docker');
             $output->writeln('Preparing docker directory');
             $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
-            $this->filesystem->mirror($copyFrom, $dockerDir);
+            $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 'docker_apache_default',
                 'docker-compose.yml',
