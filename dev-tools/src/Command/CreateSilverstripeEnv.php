@@ -44,6 +44,8 @@ class CreateSilverstripeEnv extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        // Need password to update hosts - get that first so user can walk away while the rest processes.
+        $password = $this->getPassword($input, $output);
         /** @var ProcessHelper $processHelper */
         $processHelper = $this->getHelper('process');
         $output->setVerbosity(Output::VERBOSITY_DEBUG);
@@ -152,7 +154,7 @@ class CreateSilverstripeEnv extends Command
         }
 
         $output->writeln('Updating hosts file');
-        $success = $this->updateHosts($input, $output, $hostname, $ipAddress);
+        $success = $this->updateHosts($input, $output, $hostname, $ipAddress, $password);
         if (!$success) {
             $output->writeln('ERROR: Couldn\'t add to hosts entry.');
             return Command::FAILURE;
@@ -162,24 +164,29 @@ class CreateSilverstripeEnv extends Command
         return Command::SUCCESS;
     }
 
-    protected function updateHosts(InputInterface $input, OutputInterface $output, string $hostname, string $ipAddress): bool
+    private function getPassword(InputInterface $input, OutputInterface $output): string
     {
-        // Update hosts file
-        // TODO verify this entry hasn't already been added
-        $hostsEntry = "$ipAddress    $hostname";
-
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
         $user = get_current_user();
         $question1 = new Question("[sudo] password for $user: ");
         $question1->setHidden(true);
 
-        $password = $helper->ask($input, $output, $question1);
+        do {
+            $password = $helper->ask($input, $output, $question1);
+        } while (!$password);
+        return $password;
+    }
+
+    protected function updateHosts(InputInterface $input, OutputInterface $output, string $hostname, string $ipAddress, string $password): bool
+    {
+        // Update hosts file
+        // TODO verify this entry hasn't already been added
+        $hostsEntry = "$ipAddress    $hostname";
         exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . $hostsEntry . '" >> /etc/hosts\' 2> /dev/null', $execOut, $hadError);
         if ($execOut) {
             $output->writeln($execOut);
         }
-        unset($password);
         return !$hadError;
     }
 
