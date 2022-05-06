@@ -3,14 +3,14 @@
 namespace DevTools\Command;
 
 use Symfony\Component\Console\Helper\QuestionHelper;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 
 trait UsesPassword
 {
-    private function getPassword(InputInterface $input, OutputInterface $output): string
+    private function getPassword(): string
     {
+        $input = $this->getVar('input');
+        $output = $this->getVar('output');
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
         $user = get_current_user();

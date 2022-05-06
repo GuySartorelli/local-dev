@@ -9,14 +9,13 @@ use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
-class CreateEnv extends Command
+class CreateEnv extends BaseCommand
 {
     use UsesPassword;
 
@@ -39,25 +38,69 @@ class CreateEnv extends Command
 
     private Filesystem $filesystem;
 
+    private ProcessHelper $processHelper;
+
+    /**
+     * @inheritDoc
+     */
+    protected function initialize(InputInterface $input, OutputInterface $output)
+    {
+        parent::initialize($input, $output);
+        $this->filesystem = new Filesystem();
+        $this->processHelper = $this->getHelper('process');
+        $this->normaliseRecipe();
+        // Need password to update hosts - get that first so user can walk away while the rest processes.
+        $this->setVar('password', $this->getPassword());
+    }
+
     /**
      * @inheritDoc
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // Need password to update hosts - get that first so user can walk away while the rest processes.
-        $password = $this->getPassword($input, $output);
-        /** @var ProcessHelper $processHelper */
-        $processHelper = $this->getHelper('process');
-        $output->setVerbosity(Output::VERBOSITY_DEBUG);
-        // TODO refactor this into smaller methods
-        $this->normaliseRecipe($input);
-        $suffix = Config::getNextAvailableSuffix();
+        $this->setVar('suffix', $suffix = Config::getNextAvailableSuffix());
+        $this->setVar('env-name', $envName = $this->getEnvName() . '_' . $suffix);
+        $this->setVar('env-path', Path::join($input->getOption('project-path'), $envName));
+        $this->setVar('host-name', $hostname = $envName . '.' . $input->getOption('host-suffix'));
         $ipAddress = '10.0.' . (int)$suffix .'.50';
+
+        // Take this first, so that if there's an uncaught exception it doesn't prevent creating
+        // the next environment.
         Config::takeSuffix($suffix);
 
-        // Prepare environment dir
-        $envName = $this->getEnvName($input) . '_' . $suffix;
-        $envPath = Path::join($input->getOption('project-path'), $envName);
+        // Raw environment dir setup
+        $failureCode = $this->prepareEnvDir();
+        if ($failureCode) {
+            return $failureCode;
+        }
+
+        // Prepare webroot
+        $failureCode = $this->prepareWebRoot($ipAddress);
+        if ($failureCode) {
+            return $failureCode;
+        }
+
+        // Docker stuff
+        $failureCode = $this->spinUpDocker($ipAddress);
+        if ($failureCode) {
+            return $failureCode;
+        }
+
+        // Update hosts file
+        $hostsEntry = "$ipAddress    $hostname";
+        $failureCode = $this->updateHosts($hostsEntry);
+        if ($failureCode) {
+            return $failureCode;
+        }
+
+        $output->writeln('Completed successfully. Build the db by going to http://' . $hostname . '/dev/build');
+        return Command::SUCCESS;
+    }
+
+    protected function prepareEnvDir(): bool
+    {
+        $output = $this->getVar('output');
+        $envPath = $this->getVar('env-path');
         if (is_dir($envPath)) {
             $output->writeln('ERROR: Environment path already exists: ' . $envPath);
             return Command::INVALID;
@@ -68,9 +111,46 @@ class CreateEnv extends Command
             $this->filesystem->mkdir([$envPath, $logsDir, Path::join($logsDir, 'apache2')]);
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t create environment directory: ' . $e->getMessage());
-            Config::releaseSuffix($suffix);
+            Config::releaseSuffix($this->getVar('suffix'));
             return Command::FAILURE;
         }
+        return false;
+    }
+
+    protected function prepareWebRoot(string $ipAddress): int|bool
+    {
+        $output = $this->getVar('output');
+        $envPath = $this->getVar('env-path');
+        $envName = $this->getVar('env-name');
+        $webDir = Path::join($envPath, 'www');
+
+        $failureCode = $this->buildComposerProject($webDir);
+        if ($failureCode) {
+            return $failureCode;
+        }
+        try {
+            // Setup environment-specific web files
+            $output->writeln('Preparing extra webroot files');
+            $this->filesystem->mirror(Path::join(Config::getBaseDir(), 'webroot'), $webDir, options: ['override' => true]);
+            $filesWithPlaceholders = [
+                '.env',
+            ];
+            foreach ($filesWithPlaceholders as $file) {
+                $filePath = Path::join($webDir, $file);
+                $this->replacePlaceholders($filePath, $ipAddress);
+            }
+        } catch (IOException $e) {
+            $output->writeln('ERROR: Couldn\'t set up webroot files: ' . $e->getMessage());
+            $this->filesystem->remove($envPath);
+            Config::releaseSuffix($this->getVar('suffix'));
+            return Command::FAILURE;
+        }
+    }
+
+    protected function buildComposerProject(string $webDir): int|bool
+    {
+        $input = $this->getVar('input');
+        $output = $this->getVar('output');
 
         // Prepare composer command
         $composerArgs = [
@@ -80,7 +160,6 @@ class CreateEnv extends Command
         if ($input->getOption('prefer-source')) {
             $composerArgs[] = '--prefer-source';
         }
-        $webDir = Path::join($envPath, 'www');
         $composerCommand = [
             'composer',
             'create-project',
@@ -92,31 +171,26 @@ class CreateEnv extends Command
         // Run composer command
         $process = new Process($composerCommand);
         $process->setTimeout(null);
-        $result = $processHelper->run($output, $process);
+        $result = $this->processHelper->run($output, $process);
         if (!$result->isSuccessful()) {
             // TODO revert to original state.
             $output->writeln('ERROR: Couldn\'t create composer project.');
-            Config::releaseSuffix($suffix);
-            $this->filesystem->remove($envPath);
+            Config::releaseSuffix($this->getVar('suffix'));
+            $this->filesystem->remove($this->getVar('env-path'));
             return Command::FAILURE;
         }
 
-        $hostname = $envName . '.' . $input->getOption('host-suffix');
+        return false;
+    }
+
+    protected function spinUpDocker($ipAddress): int|bool
+    {
+        $output = $this->getVar('output');
+        $envPath = $this->getVar('env-path');
 
         try {
-            // Setup environment-specific web files
-            $output->writeln('Preparing extra webroot files');
-            $this->filesystem->mirror(Path::join(Config::getBaseDir(), 'webroot'), $webDir, options: ['override' => true]);
-            $filesWithPlaceholders = [
-                '.env',
-            ];
-            foreach ($filesWithPlaceholders as $file) {
-                $filePath = Path::join($webDir, $file);
-                $this->replacePlaceholders($filePath, $envName, $envPath, $suffix, $hostname, $ipAddress);
-            }
-
             // Setup docker files
-            $dockerDir = Path::join($envPath, 'docker-' . $suffix);
+            $dockerDir = Path::join($envPath, 'docker-' . $this->getVar('suffix'));
             $output->writeln('Preparing docker directory');
             $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
             $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
@@ -127,12 +201,12 @@ class CreateEnv extends Command
             ];
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($dockerDir, $file);
-                $this->replacePlaceholders($filePath, $envName, $envPath, $suffix, $hostname, $ipAddress);
+                $this->replacePlaceholders($filePath, $ipAddress);
             }
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t set up docker or webroot files: ' . $e->getMessage());
             $this->filesystem->remove($envPath);
-            Config::releaseSuffix($suffix);
+            Config::releaseSuffix($this->getVar('suffix'));
             return Command::FAILURE;
         }
 
@@ -148,7 +222,7 @@ class CreateEnv extends Command
         $process->setTimeout(null);
         $originalDir = getcwd();
         chdir($dockerDir);
-        $result = $processHelper->run($output, $process);
+        $result = $this->processHelper->run($output, $process);
         chdir($originalDir ?: $envPath);
         if (!$result->isSuccessful()) {
             // TODO Revert??
@@ -156,33 +230,30 @@ class CreateEnv extends Command
             return Command::FAILURE;
         }
 
+        return false;
+    }
+
+    protected function updateHosts(string $hostsEntry): int|bool
+    {
+        $output = $this->getVar('output');
         $output->writeln('Updating hosts file');
-        $hostsEntry = "$ipAddress    $hostname";
-        $success = $this->updateHosts($output, $hostsEntry, $password);
-        if (!$success) {
+        $hadError = true;
+        if ($password = $this->getVar('password')) {
+            // Update hosts file
+            // TODO verify this entry hasn't already been added
+            exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . $hostsEntry . '" >> /etc/hosts\' 2> /dev/null', $execOut, $hadError);
+            if ($execOut) {
+                $output->writeln($execOut);
+            }
+        }
+        if ($hadError) {
             $output->writeln([
                 'ERROR: Couldn\'t add to hosts entry. Please manually add the following line to /etc/hosts',
                 $hostsEntry,
             ]);
             return Command::FAILURE;
         }
-
-        $output->writeln('Completed successfully. Build the db by going to http://' . $hostname . '/dev/build');
-        return Command::SUCCESS;
-    }
-
-    protected function updateHosts(OutputInterface $output, string $hostsEntry, string $password): bool
-    {
-        if (!$password) {
-            return false;
-        }
-        // Update hosts file
-        // TODO verify this entry hasn't already been added
-        exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . $hostsEntry . '" >> /etc/hosts\' 2> /dev/null', $execOut, $hadError);
-        if ($execOut) {
-            $output->writeln($execOut);
-        }
-        return !$hadError;
+        return false;
     }
 
     /**
@@ -190,18 +261,21 @@ class CreateEnv extends Command
      *
      * @throws IOException
      */
-    protected function replacePlaceholders(string $filePath, string $envName, string $envPath, string $suffix, string $hostname, string $ipAddress): void
+    protected function replacePlaceholders(string $filePath, string $ipAddress): void
     {
+        $hostname = $this->getVar('host-name');
+        $envName = $this->getVar('env-name');
+
         $ipParts = explode('.', $ipAddress);
         array_pop($ipParts);
         $ipPrefix = implode('.', $ipParts);
         $hostParts = explode('.', $hostname);
         $content = file_get_contents($filePath);
         $content = str_replace('${PROJECT_NAME}', $envName, $content);
-        $content = str_replace('${SUFFIX}', $suffix, $content);
+        $content = str_replace('${SUFFIX}', $this->getVar('suffix'), $content);
         $content = str_replace('${HOST_NAME}', $hostname, $content);
         $content = str_replace('${HOST_SUFFIX}', array_pop($hostParts), $content);
-        $content = str_replace('${PROJECT_DIR}', $envPath, $content);
+        $content = str_replace('${PROJECT_DIR}', $this->getVar('env-path'), $content);
         $content = str_replace('${IP_PREFIX}', $ipPrefix, $content);
         $this->filesystem->dumpFile($filePath, $content);
     }
@@ -209,8 +283,9 @@ class CreateEnv extends Command
     /**
      * Normalises the recipe to be installed based on static::$recipeShortcuts
      */
-    protected function normaliseRecipe(InputInterface $input): void
+    protected function normaliseRecipe(): void
     {
+        $input = $this->getVar('input');
         $recipe = $input->getOption('recipe');
         if (isset(static::$recipeShortcuts[$recipe])) {
             $input->setOption('recipe', static::$recipeShortcuts[$recipe]);
@@ -220,8 +295,9 @@ class CreateEnv extends Command
     /**
      * Gets the environment name based on the input arguments and options
      */
-    protected function getEnvName(InputInterface $input): string
+    protected function getEnvName(): string
     {
+        $input = $this->getVar('input');
         $invalidCharsRegex = '/[' . preg_quote(static::$invalidEnvNameChars, '/') . ']/';
         // Use env name if defined
         if ($name = $input->getArgument('env-name')) {
@@ -248,8 +324,6 @@ class CreateEnv extends Command
      */
     protected function configure(): void
     {
-        $this->filesystem = new Filesystem();
-
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc
