@@ -6,13 +6,11 @@ use DevTools\Utility\Config;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
-use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\Output;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -20,6 +18,8 @@ use Symfony\Component\Process\Process;
 
 class CreateEnv extends Command
 {
+    use UsesPassword;
+
     protected static $defaultName = 'create-env';
 
     protected static $defaultDescription = 'Sets up a new docker environment with a webhost.';
@@ -155,7 +155,7 @@ class CreateEnv extends Command
         }
 
         $output->writeln('Updating hosts file');
-        $success = $this->updateHosts($input, $output, $hostname, $ipAddress, $password);
+        $success = $this->updateHosts($output, $hostname, $ipAddress, $password);
         if (!$success) {
             $output->writeln('ERROR: Couldn\'t add to hosts entry.');
             return Command::FAILURE;
@@ -165,21 +165,7 @@ class CreateEnv extends Command
         return Command::SUCCESS;
     }
 
-    private function getPassword(InputInterface $input, OutputInterface $output): string
-    {
-        /** @var QuestionHelper $helper */
-        $helper = $this->getHelper('question');
-        $user = get_current_user();
-        $question1 = new Question("[sudo] password for $user: ");
-        $question1->setHidden(true);
-
-        do {
-            $password = $helper->ask($input, $output, $question1);
-        } while (!$password);
-        return $password;
-    }
-
-    protected function updateHosts(InputInterface $input, OutputInterface $output, string $hostname, string $ipAddress, string $password): bool
+    protected function updateHosts(OutputInterface $output, string $hostname, string $ipAddress, string $password): bool
     {
         // Update hosts file
         // TODO verify this entry hasn't already been added
