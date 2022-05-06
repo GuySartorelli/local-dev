@@ -18,11 +18,11 @@ use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
-class CreateSilverstripeEnv extends Command
+class CreateEnv extends Command
 {
     protected static $defaultName = 'create-env';
 
-    protected static $defaultDescription = 'Sets up a new Silverstripe docker environment with a webhost.';
+    protected static $defaultDescription = 'Sets up a new docker environment with a webhost.';
 
     /**
      * Used to define short names to easily select common recipes
@@ -116,7 +116,7 @@ class CreateSilverstripeEnv extends Command
             }
 
             // Setup docker files
-            $dockerDir = Path::join($projectPath, 'docker');
+            $dockerDir = Path::join($projectPath, 'docker-' . $suffix);
             $output->writeln('Preparing docker directory');
             $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
             $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
@@ -141,6 +141,7 @@ class CreateSilverstripeEnv extends Command
             'docker',
             'compose',
             'up',
+            '--build',
             '-d',
         ];
         chdir($dockerDir);

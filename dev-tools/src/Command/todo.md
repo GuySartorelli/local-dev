@@ -1,6 +1,6 @@
 # Todo
 
-- Finish CreateSilverstripeEnv.php
+- Finish CreateEnv.php
 - Create command for destroying env
   - stop docker containers
   - destroy volumes
