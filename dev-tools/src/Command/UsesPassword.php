@@ -16,10 +16,6 @@ trait UsesPassword
         $user = get_current_user();
         $question1 = new Question("[sudo] password for $user: ");
         $question1->setHidden(true);
-
-        do {
-            $password = $helper->ask($input, $output, $question1);
-        } while (!$password);
-        return $password;
+        return $helper->ask($input, $output, $question1);
     }
 }

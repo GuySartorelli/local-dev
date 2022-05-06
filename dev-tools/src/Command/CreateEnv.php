@@ -60,7 +60,7 @@ class CreateEnv extends Command
         $envPath = Path::join($input->getOption('project-path'), $envName);
         if (is_dir($envPath)) {
             $output->writeln('ERROR: Environment path already exists: ' . $envPath);
-            return Command::FAILURE;
+            return Command::INVALID;
         }
         $output->writeln("Making directory '$envPath'");
         try {
@@ -157,9 +157,13 @@ class CreateEnv extends Command
         }
 
         $output->writeln('Updating hosts file');
-        $success = $this->updateHosts($output, $hostname, $ipAddress, $password);
+        $hostsEntry = "$ipAddress    $hostname";
+        $success = $this->updateHosts($output, $hostsEntry, $password);
         if (!$success) {
-            $output->writeln('ERROR: Couldn\'t add to hosts entry.');
+            $output->writeln([
+                'ERROR: Couldn\'t add to hosts entry. Please manually add the following line to /etc/hosts',
+                $hostsEntry,
+            ]);
             return Command::FAILURE;
         }
 
@@ -167,11 +171,13 @@ class CreateEnv extends Command
         return Command::SUCCESS;
     }
 
-    protected function updateHosts(OutputInterface $output, string $hostname, string $ipAddress, string $password): bool
+    protected function updateHosts(OutputInterface $output, string $hostsEntry, string $password): bool
     {
+        if (!$password) {
+            return false;
+        }
         // Update hosts file
         // TODO verify this entry hasn't already been added
-        $hostsEntry = "$ipAddress    $hostname";
         exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . $hostsEntry . '" >> /etc/hosts\' 2> /dev/null', $execOut, $hadError);
         if ($execOut) {
             $output->writeln($execOut);
