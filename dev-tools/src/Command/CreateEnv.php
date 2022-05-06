@@ -93,6 +93,8 @@ class CreateEnv extends BaseCommand
             return $failureCode;
         }
 
+        // TODO run vendor/bin/sake dev/build in the docker container
+
         $output->writeln('Completed successfully. Build the db by going to http://' . $hostname . '/dev/build');
         return Command::SUCCESS;
     }
