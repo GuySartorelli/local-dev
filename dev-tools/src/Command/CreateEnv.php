@@ -33,9 +33,9 @@ class CreateEnv extends Command
     ];
 
     /**
-     * Characters that cannot be used for a project name
+     * Characters that cannot be used for an environment name
      */
-    protected static string $invalidProjectNameChars = ' !@#$%^&*()"\',.<>/?:;';
+    protected static string $invalidEnvNameChars = ' !@#$%^&*()"\',.<>/?:;';
 
     private Filesystem $filesystem;
 
@@ -55,19 +55,19 @@ class CreateEnv extends Command
         $ipAddress = '10.0.' . (int)$suffix .'.50';
         Config::takeSuffix($suffix);
 
-        // Prepare project dir
-        $projectName = $this->getProjectName($input) . '_' . $suffix;
-        $projectPath = Path::join($input->getOption('project-path'), $projectName);
-        if (is_dir($projectPath)) {
-            $output->writeln('ERROR: Project path already exists: ' . $projectPath);
+        // Prepare environment dir
+        $envName = $this->getEnvName($input) . '_' . $suffix;
+        $envPath = Path::join($input->getOption('project-path'), $envName);
+        if (is_dir($envPath)) {
+            $output->writeln('ERROR: Environment path already exists: ' . $envPath);
             return Command::FAILURE;
         }
-        $output->writeln("Making directory '$projectPath'");
+        $output->writeln("Making directory '$envPath'");
         try {
-            $logsDir = Path::join($projectPath, 'logs');
-            $this->filesystem->mkdir([$projectPath, $logsDir, Path::join($logsDir, 'apache2')]);
+            $logsDir = Path::join($envPath, 'logs');
+            $this->filesystem->mkdir([$envPath, $logsDir, Path::join($logsDir, 'apache2')]);
         } catch (IOException $e) {
-            $output->writeln('ERROR: Couldn\'t create project directory: ' . $e->getMessage());
+            $output->writeln('ERROR: Couldn\'t create environment directory: ' . $e->getMessage());
             Config::releaseSuffix($suffix);
             return Command::FAILURE;
         }
@@ -80,7 +80,7 @@ class CreateEnv extends Command
         if ($input->getOption('prefer-source')) {
             $composerArgs[] = '--prefer-source';
         }
-        $webDir = Path::join($projectPath, 'www');
+        $webDir = Path::join($envPath, 'www');
         $composerCommand = [
             'composer',
             'create-project',
@@ -97,11 +97,11 @@ class CreateEnv extends Command
             // TODO revert to original state.
             $output->writeln('ERROR: Couldn\'t create composer project.');
             Config::releaseSuffix($suffix);
-            $this->filesystem->remove($projectPath);
+            $this->filesystem->remove($envPath);
             return Command::FAILURE;
         }
 
-        $hostname = $projectName . '.' . $input->getOption('host-suffix');
+        $hostname = $envName . '.' . $input->getOption('host-suffix');
 
         try {
             // Setup environment-specific web files
@@ -112,11 +112,11 @@ class CreateEnv extends Command
             ];
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($webDir, $file);
-                $this->replacePlaceholders($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
+                $this->replacePlaceholders($filePath, $envName, $envPath, $suffix, $hostname, $ipAddress);
             }
 
             // Setup docker files
-            $dockerDir = Path::join($projectPath, 'docker-' . $suffix);
+            $dockerDir = Path::join($envPath, 'docker-' . $suffix);
             $output->writeln('Preparing docker directory');
             $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
             $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
@@ -127,11 +127,11 @@ class CreateEnv extends Command
             ];
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($dockerDir, $file);
-                $this->replacePlaceholders($filePath, $projectName, $projectPath, $suffix, $hostname, $ipAddress);
+                $this->replacePlaceholders($filePath, $envName, $envPath, $suffix, $hostname, $ipAddress);
             }
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t set up docker or webroot files: ' . $e->getMessage());
-            $this->filesystem->remove($projectPath);
+            $this->filesystem->remove($envPath);
             Config::releaseSuffix($suffix);
             return Command::FAILURE;
         }
@@ -144,10 +144,12 @@ class CreateEnv extends Command
             '--build',
             '-d',
         ];
-        chdir($dockerDir);
         $process = new Process($startCommand);
         $process->setTimeout(null);
+        $originalDir = getcwd();
+        chdir($dockerDir);
         $result = $processHelper->run($output, $process);
+        chdir($originalDir ?: $envPath);
         if (!$result->isSuccessful()) {
             // TODO Revert??
             $output->writeln('ERROR: Couldn\'t start docker containers.');
@@ -182,18 +184,18 @@ class CreateEnv extends Command
      *
      * @throws IOException
      */
-    protected function replacePlaceholders(string $filePath, string $projectName, string $projectPath, string $suffix, string $hostname, string $ipAddress): void
+    protected function replacePlaceholders(string $filePath, string $envName, string $envPath, string $suffix, string $hostname, string $ipAddress): void
     {
         $ipParts = explode('.', $ipAddress);
         array_pop($ipParts);
         $ipPrefix = implode('.', $ipParts);
         $hostParts = explode('.', $hostname);
         $content = file_get_contents($filePath);
-        $content = str_replace('${PROJECT_NAME}', $projectName, $content);
+        $content = str_replace('${PROJECT_NAME}', $envName, $content);
         $content = str_replace('${SUFFIX}', $suffix, $content);
         $content = str_replace('${HOST_NAME}', $hostname, $content);
         $content = str_replace('${HOST_SUFFIX}', array_pop($hostParts), $content);
-        $content = str_replace('${PROJECT_DIR}', $projectPath, $content);
+        $content = str_replace('${PROJECT_DIR}', $envPath, $content);
         $content = str_replace('${IP_PREFIX}', $ipPrefix, $content);
         $this->filesystem->dumpFile($filePath, $content);
     }
@@ -210,17 +212,17 @@ class CreateEnv extends Command
     }
 
     /**
-     * Gets the project name based on the input arguments and options
+     * Gets the environment name based on the input arguments and options
      */
-    protected function getProjectName(InputInterface $input): string
+    protected function getEnvName(InputInterface $input): string
     {
-        $invalidCharsRegex = '/[' . preg_quote(static::$invalidProjectNameChars, '/') . ']/';
-        // Use project name if defined
-        if ($name = $input->getArgument('project-name')) {
-            // TODO validate against duplicate project names
+        $invalidCharsRegex = '/[' . preg_quote(static::$invalidEnvNameChars, '/') . ']/';
+        // Use env name if defined
+        if ($name = $input->getArgument('env-name')) {
+            // TODO validate against duplicate environment names
             if (preg_match($invalidCharsRegex, $name)) {
                 throw new LogicException(
-                    'project-name must not contain the following characters: ' . static::$invalidProjectNameChars
+                    'env-name must not contain the following characters: ' . static::$invalidEnvNameChars
                 );
             }
             return $name;
@@ -245,16 +247,16 @@ class CreateEnv extends Command
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc
-        Creates a new project in the project path using the project name and a unique integer value.
+        Creates a new environment in the project path using the env name and a unique integer value.
         The integer value is used to ensure directories are unique, as well as for a port for the database server.
-        The project directory contains the docker-compose file, test artifacts, logs, web root, and .env file.
+        The environment directory contains the docker-compose file, test artifacts, logs, web root, and .env file.
         HELP);
         $this->addArgument(
-            'project-name',
+            'env-name',
             InputArgument::OPTIONAL,
-            'The name of the project. This will be used for the directory and the webhost. '
+            'The name of the environment. This will be used for the directory and the webhost. '
             . 'Defaults to a name generated based on the recipe and constraint. '
-            . 'Must not contain the following characters: ' . static::$invalidProjectNameChars
+            . 'Must not contain the following characters: ' . static::$invalidEnvNameChars
         );
         $this->addOption(
             'project-path',
