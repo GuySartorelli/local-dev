@@ -1,12 +1,5 @@
 # Todo
 
-- Finish CreateEnv.php
-- Create command for destroying env
-  - stop docker containers
-  - destroy volumes
-  - remove env dir
-  - remove hosts entry
-  - set port suffix as available
 - swap PHP versions on a given project
 - Toggle xdebug on a given project
 - Git commands
@@ -15,4 +8,5 @@
     - Runs phpcs linting
     - Checks for correct naming convention
     - Pushes to creative-commoners by default
+- Finish up todos in codebase
 - ??

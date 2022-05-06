@@ -4,6 +4,7 @@
 require_once __DIR__ . '/vendor/autoload.php';
 
 use DevTools\Command\CreateEnv;
+use DevTools\Command\DestroyEnv;
 use DevTools\Utility\Config;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\InputArgument;
@@ -32,6 +33,7 @@ $application->setDefinition(
 // Add custom commands
 $application->addCommands([
     new CreateEnv(),
+    new DestroyEnv(),
 ]);
 
 // start
