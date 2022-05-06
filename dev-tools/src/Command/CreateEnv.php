@@ -62,7 +62,7 @@ class CreateEnv extends BaseCommand
         $this->setVar('env-name', $envName = $this->getEnvName() . '_' . $suffix);
         $this->setVar('env-path', Path::join($input->getOption('project-path'), $envName));
         $this->setVar('host-name', $hostname = $envName . '.' . $input->getOption('host-suffix'));
-        $ipAddress = '10.0.' . (int)$suffix .'.50';
+        $ipAddress = '10.0.' . (int)$suffix . '.50';
 
         // Take this first, so that if there's an uncaught exception it doesn't prevent creating
         // the next environment.
@@ -121,7 +121,6 @@ class CreateEnv extends BaseCommand
     {
         $output = $this->getVar('output');
         $envPath = $this->getVar('env-path');
-        $envName = $this->getVar('env-name');
         $webDir = Path::join($envPath, 'www');
 
         $failureCode = $this->buildComposerProject($webDir);
@@ -145,12 +144,15 @@ class CreateEnv extends BaseCommand
             Config::releaseSuffix($this->getVar('suffix'));
             return Command::FAILURE;
         }
+
+        return false;
     }
 
     protected function buildComposerProject(string $webDir): int|bool
     {
         $input = $this->getVar('input');
         $output = $this->getVar('output');
+        $output->writeln('Building composer project');
 
         // Prepare composer command
         $composerArgs = [
@@ -187,6 +189,7 @@ class CreateEnv extends BaseCommand
     {
         $output = $this->getVar('output');
         $envPath = $this->getVar('env-path');
+        $output->writeln('Spinning up docker');
 
         try {
             // Setup docker files
@@ -218,10 +221,10 @@ class CreateEnv extends BaseCommand
             '--build',
             '-d',
         ];
-        $process = new Process($startCommand);
-        $process->setTimeout(null);
         $originalDir = getcwd();
         chdir($dockerDir);
+        $process = new Process($startCommand);
+        $process->setTimeout(null);
         $result = $this->processHelper->run($output, $process);
         chdir($originalDir ?: $envPath);
         if (!$result->isSuccessful()) {
@@ -265,11 +268,11 @@ class CreateEnv extends BaseCommand
     {
         $hostname = $this->getVar('host-name');
         $envName = $this->getVar('env-name');
-
         $ipParts = explode('.', $ipAddress);
         array_pop($ipParts);
         $ipPrefix = implode('.', $ipParts);
         $hostParts = explode('.', $hostname);
+
         $content = file_get_contents($filePath);
         $content = str_replace('${PROJECT_NAME}', $envName, $content);
         $content = str_replace('${SUFFIX}', $this->getVar('suffix'), $content);
@@ -277,6 +280,7 @@ class CreateEnv extends BaseCommand
         $content = str_replace('${HOST_SUFFIX}', array_pop($hostParts), $content);
         $content = str_replace('${PROJECT_DIR}', $this->getVar('env-path'), $content);
         $content = str_replace('${IP_PREFIX}', $ipPrefix, $content);
+
         $this->filesystem->dumpFile($filePath, $content);
     }
 

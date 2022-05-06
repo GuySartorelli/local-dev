@@ -7,7 +7,7 @@ use Symfony\Component\Console\Question\Question;
 
 trait UsesPassword
 {
-    private function getPassword(): string
+    private function getPassword(): ?string
     {
         $input = $this->getVar('input');
         $output = $this->getVar('output');

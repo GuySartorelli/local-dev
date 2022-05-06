@@ -135,12 +135,12 @@ final class Config
     }
 
     /**
-     * Prepare an array of suffixes from "00" to "99" all set to false
+     * Prepare an array of suffixes from "00" to "49" all set to false
      */
     private static function prepareEmptySuffixes(): array
     {
         $suffixes = [];
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             for ($j = 0; $j < 10; $j++) {
                 $suffixes["$i$j"] = false;
             }
