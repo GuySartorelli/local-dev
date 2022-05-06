@@ -18,8 +18,8 @@ services:
 
   webserver:
     container_name: ${PROJECT_NAME}_webserver
-    build:
-      context: .
+    image: gsartorelli/webserver
+    build: .
     volumes:
       - ../www/:/var/www
       - ../logs/:/var/log

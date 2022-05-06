@@ -94,7 +94,6 @@ class DestroyEnv extends BaseCommand
             'compose',
             'down',
             '-v',
-            '--rmi=local',
         ];
 
         $originalDir = getcwd();
