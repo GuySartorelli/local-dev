@@ -291,7 +291,6 @@ class CreateEnv extends BaseCommand
         $content = str_replace('${SUFFIX}', $environment->getSuffix(), $content);
         $content = str_replace('${HOST_NAME}', $hostname, $content);
         $content = str_replace('${HOST_SUFFIX}', array_pop($hostParts), $content);
-        $content = str_replace('${PROJECT_DIR}', $this->getVar('env-path'), $content);
         $content = str_replace('${IP_PREFIX}', $ipPrefix, $content);
 
         $this->filesystem->dumpFile($filePath, $content);
