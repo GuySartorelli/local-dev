@@ -35,7 +35,7 @@ final class Environment
 
     public function getDockerDir(): string
     {
-        return Path::join($this->getBaseDir(), 'docker' . $this->getSuffix());
+        return Path::join($this->getBaseDir(), 'docker-' . $this->getSuffix());
     }
 
     public function getName(): string
