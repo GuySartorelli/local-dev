@@ -87,7 +87,8 @@ final class Environment
                     }
                 }
                 if ($found === 3) {
-                    return $candidate;
+                    $this->baseDir = $candidate;
+                    return;
                 }
             }
             // If the directory is invalid, check its parent next.

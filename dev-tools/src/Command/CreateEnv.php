@@ -193,7 +193,6 @@ class CreateEnv extends BaseCommand
     protected function spinUpDocker(): int|bool
     {
         $output = $this->getVar('output');
-        $envPath = $this->getVar('env-path');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $output->writeln('Spinning up docker');
@@ -215,7 +214,7 @@ class CreateEnv extends BaseCommand
             }
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t set up docker or webroot files: ' . $e->getMessage());
-            $this->filesystem->remove($envPath);
+            $this->filesystem->remove($environment->getBaseDir());
             Config::releaseSuffix($environment->getSuffix());
             return Command::FAILURE;
         }
@@ -278,7 +277,6 @@ class CreateEnv extends BaseCommand
     protected function replacePlaceholders(string $filePath): void
     {
         $hostname = $this->getVar('host-name');
-        $envName = $this->getVar('env-name');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $ipParts = explode('.', $environment->getIpAddress());
@@ -287,7 +285,7 @@ class CreateEnv extends BaseCommand
         $hostParts = explode('.', $hostname);
 
         $content = file_get_contents($filePath);
-        $content = str_replace('${PROJECT_NAME}', $envName, $content);
+        $content = str_replace('${PROJECT_NAME}', $environment->getName(), $content);
         $content = str_replace('${SUFFIX}', $environment->getSuffix(), $content);
         $content = str_replace('${HOST_NAME}', $hostname, $content);
         $content = str_replace('${HOST_SUFFIX}', array_pop($hostParts), $content);
