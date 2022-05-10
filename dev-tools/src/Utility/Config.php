@@ -53,7 +53,17 @@ final class Config
      */
     public static function getBaseDir(): string
     {
-        return __DIR__ . '/../../';
+        return Path::canonicalize(__DIR__ . '/../../');
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @return string
+     */
+    public static function getCopyDir(): string
+    {
+        return Path::join(self::getBaseDir(), 'copy-to-container');
     }
 
     /**

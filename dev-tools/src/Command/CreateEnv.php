@@ -134,7 +134,7 @@ class CreateEnv extends BaseCommand
         try {
             // Setup environment-specific web files
             $output->writeln('Preparing extra webroot files');
-            $this->filesystem->mirror(Path::join(Config::getBaseDir(), 'webroot'), $webDir, options: ['override' => true]);
+            $this->filesystem->mirror(Path::join(Config::getCopyDir(), 'webroot'), $webDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 '.env',
             ];
@@ -201,7 +201,7 @@ class CreateEnv extends BaseCommand
             // Setup docker files
             $dockerDir = $environment->getDockerDir();
             $output->writeln('Preparing docker directory');
-            $copyFrom = Path::join(Config::getBaseDir(), 'docker/');
+            $copyFrom = Path::join(Config::getCopyDir(), 'docker/');
             $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 'docker_apache_default',
