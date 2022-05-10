@@ -19,7 +19,7 @@ class DestroyEnv extends BaseCommand
 {
     use UsesPassword;
 
-    protected static $defaultName = 'destroy-env';
+    protected static $defaultName = 'down';
 
     protected static $defaultDescription = 'Basically undoes the create-env command.';
 

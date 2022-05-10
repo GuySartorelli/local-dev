@@ -20,7 +20,7 @@ class CreateEnv extends BaseCommand
 {
     use UsesPassword;
 
-    protected static $defaultName = 'create-env';
+    protected static $defaultName = 'up';
 
     protected static $defaultDescription = 'Sets up a new docker environment with a webhost.';
 
