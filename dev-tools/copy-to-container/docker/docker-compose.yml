@@ -3,14 +3,14 @@
 # database:   10.0.14.51 root:root
 # phpmyadmin: 10.0.14.52 root:root
 
+# mailhog
+# http://${PROJECT_NAME}:8025
+
 # ssh
 # docker exec -it ${PROJECT_NAME}_webserver sh -c "cd /var/www && su -s /bin/bash www-data"
 
 # mysql
 # mysql -h0.0.0.0 -P33${SUFFIX} -DSS_mysite -uroot -proot
-
-# if docker complains about the "version" not being supported, then install that latest version of docker-compose
-# https://docs.docker.com/compose/install/
 
 version: '3.8'
 
@@ -34,9 +34,6 @@ services:
   mariadb:
     container_name: ${PROJECT_NAME}_mariadb
     image: mariadb:10.5.2
-    # If changing database version after a container has already been created
-    # it seems necessary to run something like `dqx` and rebuild everything.
-    # image: mariadb:10.1.10
     volumes:
       - mariadb-volume:/var/lib/mysql
     environment:
@@ -63,21 +60,3 @@ networks:
       driver: default
       config:
         - subnet: ${IP_PREFIX}.0/24
-
-# (will automatically create a ${PROJECT_NAME}_default network, name is based on the directory)
-
-# If you get "cannot create network" issues - probably need to remove previously created stuff on the network:
-# docker ps -a
-# docker network ls
-# https://stackoverflow.com/questions/45648821/docker-compose-up-error-invalid-address
-# remove all containers
-# docker rm -f $(docker ps -aq)
-# remove all unused networks
-# docker network prune -f
-
-#ports:
-  # Specify "- 80" instead of "- 80:80" to support multiple docker-composes
-  # Docker compose will auto-generate a 0.0.0.0:327xx port
-  # This is to solve "Bind for 0.0.0.0:80 failed: port is already allocated"
-  # https://github.com/docker/compose/issues/4950#issuecomment-342882168
-#  - 80
