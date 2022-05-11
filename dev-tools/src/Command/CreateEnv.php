@@ -386,7 +386,7 @@ class CreateEnv extends BaseCommand
         );
         $this->addOption(
             'composer-args',
-            'null',
+            'a',
             InputOption::VALUE_OPTIONAL,
             'Any additional arguments to be passed to the composer create-project command.',
             ''
