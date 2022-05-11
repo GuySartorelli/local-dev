@@ -1,0 +1,13 @@
+---
+Name: mailhog-emailconfig
+After:
+  - '#project-emailconfig'
+---
+SilverStripe\Core\Injector\Injector:
+  Swift_Transport:
+    class: Swift_SendmailTransport
+    constructor:
+      0: '/home/www-data/go/bin/mhsendmail -t'
+SilverStripe\Control\Email\Email:
+  admin_email:
+    admin-email@bugfix.test: 'Admin-email'

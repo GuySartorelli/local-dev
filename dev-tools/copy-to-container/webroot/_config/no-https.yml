@@ -1,0 +1,8 @@
+---
+Name: no-https
+After: '#appsecurity'
+---
+SilverStripe\Core\Injector\Injector:
+  SilverStripe\Control\Middleware\CanonicalURLMiddleware:
+    properties:
+      ForceSSL: false
