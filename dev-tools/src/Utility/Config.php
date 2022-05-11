@@ -166,7 +166,7 @@ final class Config
     private static function validateSuffix(string $suffix): void
     {
         // Validate suffix
-        if (!preg_match('/\d{2}/', $suffix)) {
+        if (strlen($suffix) !== 2 || !is_numeric($suffix)) {
             throw new InvalidArgumentException('$suffix must be a 2 digit string.');
         }
     }

@@ -69,7 +69,7 @@ class DestroyEnv extends BaseCommand
 
         // Release suffix now that we aren't using it for the directory.
         // This way if we can't remove the hosts entry we can still re-use this suffix.
-        Config::releaseSuffix($environment->getName());
+        Config::releaseSuffix($environment->getSuffix());
 
         // Remove hosts entry
         $failureCode = $this->cleanUpHosts();
