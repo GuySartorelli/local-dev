@@ -1,4 +1,5 @@
-FROM ubuntu:20.04
+# Swapped back to 18.04 to debug behat issues - try 20.04 again at some stage, that was probably a red herring.
+FROM ubuntu:18.04
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -14,13 +15,10 @@ RUN apt-get update && apt-get install -y software-properties-common
 RUN add-apt-repository -y ppa:ondrej/php
 RUN add-apt-repository -y ppa:ondrej/apache2
 
-# Uncomment this if you wish to run chromium beta
-# add-apt-repository -y ppa:chromium-team/beta
-
 # Ensure any packages are installed in Dockerfile rather than docker_bash_script so
 # that this 'slice' is cached for future builds
 # Increment echo int to force an update when adding new packages for installation
-RUN apt-get update && echo 7 > /dev/null
+RUN apt-get update && echo 8 > /dev/null
 
 # Needed for a couple of the installs
 RUN apt-get install -y wget
@@ -33,22 +31,25 @@ RUN apt-get install -y apt-utils
 
 RUN apt-get install -y apache2
 
-#RUN apt-get install -y chromium-browser
-#RUN apt-get install -y chromium-chromedriver
-# Install chrome, chromedriver, and dependencies
-RUN apt-get install -y fonts-liberation xdg-utils libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 libcairo2 libcups2 libgbm1 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libxdamage1 libxkbcommon0 unzip
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-RUN dpkg -i google-chrome-stable_current_amd64.deb
-# Install and verify version of chromedriver
-RUN BROWSER_MAJOR=$(google-chrome --version | sed 's/Google Chrome \([0-9]*\).*/\1/g') \
-    && wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${BROWSER_MAJOR} -O chrome_version \
-    && wget https://chromedriver.storage.googleapis.com/`cat chrome_version`/chromedriver_linux64.zip \
-    && unzip chromedriver_linux64.zip \
-    && mv chromedriver /usr/local/bin/ \
-    && DRIVER_MAJOR=$(chromedriver --version | sed 's/ChromeDriver \([0-9]*\).*/\1/g') \
-    && echo "chrome version: $BROWSER_MAJOR" \
-    && echo "chromedriver version: $DRIVER_MAJOR" \
-    && if [ $BROWSER_MAJOR != $DRIVER_MAJOR ]; then echo "VERSION MISMATCH"; exit 1; fi
+# # Install chromium and chromedriver - the below PPA is needed if using focal or above to avoid snaps (which can't be installed in this context)
+# RUN add-apt-repository ppa:savoury1/ffmpeg4 && add-apt-repository ppa:savoury1/chromium && apt-get update
+RUN apt-get install -y chromium-browser
+RUN apt-get install -y chromium-chromedriver
+
+# # Install chrome, chromedriver, and dependencies - uncomment this if the third-party PPA for chromium above stops working
+# RUN apt-get install -y fonts-liberation xdg-utils libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 libcairo2 libcups2 libgbm1 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libxdamage1 libxkbcommon0 unzip
+# RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+# RUN dpkg -i google-chrome-stable_current_amd64.deb
+# # Install and verify version of chromedriver
+# RUN BROWSER_MAJOR=$(google-chrome --version | sed 's/Google Chrome \([0-9]*\).*/\1/g') \
+#     && wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${BROWSER_MAJOR} -O chrome_version \
+#     && wget https://chromedriver.storage.googleapis.com/`cat chrome_version`/chromedriver_linux64.zip \
+#     && unzip chromedriver_linux64.zip \
+#     && mv chromedriver /usr/local/bin/ \
+#     && DRIVER_MAJOR=$(chromedriver --version | sed 's/ChromeDriver \([0-9]*\).*/\1/g') \
+#     && echo "chrome version: $BROWSER_MAJOR" \
+#     && echo "chromedriver version: $DRIVER_MAJOR" \
+#     && if [ $BROWSER_MAJOR != $DRIVER_MAJOR ]; then echo "VERSION MISMATCH"; exit 1; fi
 
 # mailhog
 RUN apt-get install -y golang-go
