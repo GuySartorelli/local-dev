@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Based on https://gist.github.com/maxime-rainville/0e2cc280cc9d2e014a21b55a192076d9
+
+# Define a few constants
+ss_account="git@github.com:silverstripe/"
+ss_http_account="https://github.com/silverstripe/"
+cc_account="git@github.com:creative-commoners/"
+security_account="git@github.com:silverstripe-security/"
+
+# Get our url for our origin remote
+origin_url=`git remote get-url origin`
+
+# If it matches our primary ss account
+if [[ $origin_url == "$ss_account"* ]]
+then
+    git remote rename origin ss
+    git remote add cc ${origin_url/$ss_account/$cc_account}
+    git remote add security ${origin_url/$ss_account/$security_account}
+    git fetch --all
+elif [[ $origin_url == "$ss_http_account"* ]]
+then
+    git remote rename origin ss
+    git remote add cc ${origin_url/$ss_http_account/$cc_account}
+    git remote add security ${origin_url/$ss_http_account/$security_account}
+    git fetch --all
+fi
+
+echo "Remotes added and fetched"
