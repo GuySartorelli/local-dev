@@ -138,6 +138,7 @@ class CreateEnv extends BaseCommand
             $this->filesystem->mirror(Path::join(Config::getCopyDir(), 'webroot'), $webDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 '.env',
+                'run-behat',
             ];
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($webDir, $file);

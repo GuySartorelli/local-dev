@@ -9,5 +9,7 @@
     - Checks for correct naming convention
     - Pushes to creative-commoners by default
 - Finish up todos in codebase
+- Make behat a command in dev-tools instead of standalone
 - Command for phpunit
+- Update README
 - ??
