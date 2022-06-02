@@ -9,4 +9,5 @@
     - Checks for correct naming convention
     - Pushes to creative-commoners by default
 - Finish up todos in codebase
+- Command for phpunit
 - ??

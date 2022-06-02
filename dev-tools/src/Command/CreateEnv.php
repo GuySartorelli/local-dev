@@ -3,6 +3,7 @@
 namespace DevTools\Command;
 
 use DevTools\Utility\Config;
+use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
@@ -219,21 +220,9 @@ class CreateEnv extends BaseCommand
             return Command::FAILURE;
         }
 
-        // Start docker image
-        $startCommand = [
-            'docker',
-            'compose',
-            'up',
-            '--build',
-            '-d',
-        ];
-        $originalDir = getcwd();
-        chdir($dockerDir);
-        $process = new Process($startCommand);
-        $process->setTimeout(null);
-        $result = $this->processHelper->run($output, $process);
-        chdir($originalDir ?: $envPath);
-        if (!$result->isSuccessful()) {
+        $dockerService = new DockerService($environment, $this->processHelper, $output);
+        $success = $dockerService->up();
+        if (!$success) {
             // TODO Revert??
             $output->writeln('ERROR: Couldn\'t start docker containers.');
             return Command::FAILURE;

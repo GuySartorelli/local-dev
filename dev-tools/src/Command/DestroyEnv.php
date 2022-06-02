@@ -3,6 +3,7 @@
 namespace DevTools\Command;
 
 use DevTools\Utility\Config;
+use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
@@ -13,7 +14,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
-use Symfony\Component\Process\Process;
 
 class DestroyEnv extends BaseCommand
 {
@@ -84,25 +84,11 @@ class DestroyEnv extends BaseCommand
     protected function pullDownDocker(): int|bool
     {
         $output = $this->getVar('output');
-        /** @var Environment $environment */
-        $environment = $this->getVar('env');
+        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
         $output->writeln('Taking down docker');
 
-        $stopCommand = [
-            'docker',
-            'compose',
-            'down',
-            '-v',
-        ];
-
-        $originalDir = getcwd();
-        chdir($environment->getDockerDir());
-        $process = new Process($stopCommand);
-        $process->setTimeout(null);
-        $result = $this->processHelper->run($output, $process);
-        chdir($originalDir ?: $environment->getBaseDir());
-
-        if (!$result->isSuccessful()) {
+        $success = $dockerService->down();
+        if (!$success) {
             $output->writeln('ERROR: Problem occured while stopping docker containers.');
             return Command::FAILURE;
         }

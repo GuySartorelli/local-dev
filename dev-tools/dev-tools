@@ -5,6 +5,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use DevTools\Command\CreateEnv;
 use DevTools\Command\DestroyEnv;
+use DevTools\Command\Docker;
 use DevTools\Utility\Config;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\InputArgument;
@@ -34,6 +35,7 @@ $application->setDefinition(
 $application->addCommands([
     new CreateEnv(),
     new DestroyEnv(),
+    new Docker(),
 ]);
 
 // start
