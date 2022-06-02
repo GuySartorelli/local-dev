@@ -23,6 +23,7 @@ services:
     volumes:
       - ../www/:/var/www
       - ../logs/:/var/log
+      - ~/.cache/composer:/home/www-data/.cache/composer
     domainname: ${HOST_SUFFIX}
     hostname: ${PROJECT_NAME}
     environment:
