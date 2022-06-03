@@ -17,7 +17,9 @@ abstract class BaseCommand extends Command
      */
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
-        $output->setVerbosity(Output::VERBOSITY_DEBUG);
+        if (!$input->getOption('quiet')) {
+            $output->setVerbosity(Output::VERBOSITY_DEBUG);
+        }
         $this->resetVars();
         $this->setVar('input', $input);
         $this->setVar('output', $output);

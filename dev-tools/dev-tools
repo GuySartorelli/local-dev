@@ -6,6 +6,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 use DevTools\Command\CreateEnv;
 use DevTools\Command\DestroyEnv;
 use DevTools\Command\Docker;
+use DevTools\Command\Sake;
 use DevTools\Utility\Config;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\InputArgument;
@@ -22,6 +23,7 @@ $application = new Application('Dev Tools');
 $application->setDefinition(
     new InputDefinition([
         new InputArgument('command', InputArgument::REQUIRED, 'The command to execute'),
+        new InputOption('--quiet', '-q', InputOption::VALUE_NONE, 'Do not output any message'),
         new InputOption(
             '--help',
             '-h',
@@ -36,6 +38,7 @@ $application->addCommands([
     new CreateEnv(),
     new DestroyEnv(),
     new Docker(),
+    new Sake(),
 ]);
 
 // start
