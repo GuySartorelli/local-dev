@@ -53,6 +53,17 @@ final class Environment
         return '10.0.' . (int)$this->getSuffix() . '.50';
     }
 
+    public function getHostName(): string
+    {
+        $suffix = Config::getEnv('DT_DEFAULT_HOST_SUFFIX');
+        return $this->getName() . '.' . $suffix;
+    }
+
+    public function getBaseURL(): string
+    {
+        return "http://{$this->getHostName()}";
+    }
+
     private function getEnvBasePath(string $candidate, bool $isNew): void
     {
         if ($isNew) {

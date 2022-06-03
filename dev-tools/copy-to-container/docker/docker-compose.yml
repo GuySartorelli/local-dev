@@ -1,7 +1,7 @@
 # sink_4-x_14 example:
 # webserver:  10.0.14.50
-# database:   10.0.14.51 root:root
-# phpmyadmin: 10.0.14.52 root:root
+# database:   localhost:3314 root:root
+# phpmyadmin: 10.0.14.52 root:root??
 
 # mailhog
 # http://${PROJECT_NAME}:8025

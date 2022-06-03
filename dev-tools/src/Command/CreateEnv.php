@@ -63,7 +63,6 @@ class CreateEnv extends BaseCommand
         $suffix = Config::getNextAvailableSuffix();
         $envName = $this->getEnvName() . '_' . $suffix;
         $this->setVar('env', $environment = new Environment(Path::join($input->getOption('project-path'), $envName), true));
-        $this->setVar('host-name', $hostname = $envName . '.' . $input->getOption('host-suffix'));
 
         // Take this first, so that if there's an uncaught exception it doesn't prevent creating
         // the next environment.
@@ -88,14 +87,18 @@ class CreateEnv extends BaseCommand
         }
 
         // Update hosts file
-        $failureCode = $this->updateHosts($hostname);
+        $failureCode = $this->updateHosts();
         if ($failureCode) {
             return $failureCode;
         }
 
         // TODO run vendor/bin/sake dev/build in the docker container
 
-        $output->writeln('Completed successfully. Build the db by going to http://' . $hostname . '/dev/build');
+        $output->write([
+            'Completed successfully.',
+            "Build the db by going to {$environment->getBaseURL()}/dev/build",
+            'Or run: dev-tools sake dev/build',
+        ], true);
         return Command::SUCCESS;
     }
 
@@ -232,12 +235,13 @@ class CreateEnv extends BaseCommand
         return false;
     }
 
-    protected function updateHosts(string $hostname): int|bool
+    protected function updateHosts(): int|bool
     {
         $output = $this->getVar('output');
         $output->writeln('Updating hosts file');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
+        $hostname = $environment->getHostName();
         $hostsEntry = "{$environment->getIpAddress()}    $hostname";
         $hadError = true;
 
@@ -266,9 +270,9 @@ class CreateEnv extends BaseCommand
      */
     protected function replacePlaceholders(string $filePath): void
     {
-        $hostname = $this->getVar('host-name');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
+        $hostname = $environment->getHostName();
         $ipParts = explode('.', $environment->getIpAddress());
         array_pop($ipParts);
         $ipPrefix = implode('.', $ipParts);
@@ -348,13 +352,6 @@ class CreateEnv extends BaseCommand
             InputOption::VALUE_REQUIRED,
             'The path of the parent directory where the env directory will be created.',
             Config::getEnv('DT_DEFAULT_PROJECTS_PATH')
-        );
-        $this->addOption(
-            'host-suffix',
-            's',
-            InputOption::VALUE_REQUIRED,
-            'The suffix for the site host.',
-            Config::getEnv('DT_DEFAULT_HOST_SUFFIX')
         );
         $recipeDescription = '';
         foreach (static::$recipeShortcuts as $shortcut => $recipe) {
