@@ -50,6 +50,7 @@ class Sake extends BaseCommand
         $command = array_merge(['vendor/bin/sake'], $input->getArgument('task'));
 
         // Run the command
+        // TODO either subclass the Docker command or call that command from here to make code more DRY
         $failureCode = $this->runDockerCommand(implode(' ', $command));
         if ($failureCode) {
             return $failureCode;
