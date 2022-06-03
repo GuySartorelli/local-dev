@@ -12,7 +12,7 @@ use Symfony\Component\Filesystem\Path;
 
 class Environment extends BaseCommand
 {
-    protected static $defaultName = 'info';
+    protected static $defaultName = 'env';
 
     protected static $defaultDescription = 'Get information about or change settings in a dev environment.';
 
