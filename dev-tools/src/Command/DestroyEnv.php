@@ -107,14 +107,18 @@ class DestroyEnv extends BaseCommand
         if ($password = $this->getVar('password')) {
             // Update hosts file
             $hostsContent = file_get_contents('/etc/hosts');
-            preg_replace(
-                '/^' . preg_quote($environment->getIpAddress(), '/') . '\h+' . preg_quote($environment->getName(), '/') . '\..*$/',
+            $hostsContent = preg_replace(
+                '/^' . preg_quote($environment->getIpAddress(), '/') . '\h+' . preg_quote($environment->getName(), '/') . '\..*$/m',
                 '',
                 $hostsContent
             );
-            exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . $hostsContent . '" > /etc/hosts\' 2> /dev/null', $execOut, $hadError);
-            if ($execOut) {
-                $output->writeln($execOut);
+            if ($hostsContent === null) {
+                $hadError = true;
+            } else {
+                exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . trim($hostsContent) . '" > /etc/hosts\' 2> /dev/null', $execOut, $hadError);
+                if ($execOut) {
+                    $output->writeln($execOut);
+                }
             }
         }
 
