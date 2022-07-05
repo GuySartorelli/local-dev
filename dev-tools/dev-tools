@@ -3,11 +3,7 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use DevTools\Command\CreateEnv;
-use DevTools\Command\DestroyEnv;
-use DevTools\Command\Docker;
-use DevTools\Command\Environment;
-use DevTools\Command\Sake;
+use DevTools\Command;
 use DevTools\Utility\Config;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\InputArgument;
@@ -36,11 +32,12 @@ $application->setDefinition(
 
 // Add custom commands
 $application->addCommands([
-    new CreateEnv(),
-    new DestroyEnv(),
-    new Docker(),
-    new Environment(),
-    new Sake(),
+    new Command\CreateEnv(),
+    new Command\CreateEnvForPR(),
+    new Command\DestroyEnv(),
+    new Command\Docker(),
+    new Command\Environment(),
+    new Command\Sake(),
 ]);
 
 // start

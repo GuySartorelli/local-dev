@@ -38,9 +38,9 @@ class CreateEnv extends BaseCommand
      */
     protected static string $invalidEnvNameChars = ' !@#$%^&*()"\',.<>/?:;';
 
-    private Filesystem $filesystem;
+    protected Filesystem $filesystem;
 
-    private ProcessHelper $processHelper;
+    protected ProcessHelper $processHelper;
 
     /**
      * @inheritDoc
