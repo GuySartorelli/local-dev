@@ -55,6 +55,7 @@ class CreateEnvForPR extends CreateEnv
         $this->setVar('composerName', $this->getComposerName($client, $pr));
         $prDetails = $client->pullRequest()->show($pr['org'], $pr['repo'], $pr['pr']);
         $this->setVar('prDetails', array_merge($pr, [
+            'from-org' => $prDetails['head']['user']['login'],
             'remote' => $prDetails['head']['repo']['ssh_url'],
             'branch' => $prDetails['head']['ref'],
         ]));
@@ -75,6 +76,7 @@ class CreateEnvForPR extends CreateEnv
 
     protected function prepareGitStuff()
     {
+        /** @var OutputInterface $output */
         $output = $this->getVar('output');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
@@ -85,7 +87,8 @@ class CreateEnvForPR extends CreateEnv
         $prPath = Path::join($environment->getWebRoot(), 'vendor', $this->getVar('composerName'));
         chdir($prPath);
         $commands = [];
-        if (!in_array($pr['org'], ['creative-commoners', 'silverstripe', 'silverstripe-security'])) {
+        if (!in_array($pr['from-org'], ['creative-commoners', 'silverstripe', 'silverstripe-security'])) {
+            $output->writeln('Remote is not used by CMS Squad');
             // Add the PR remote
             $commands[] = [
                 'git',
@@ -107,6 +110,7 @@ class CreateEnvForPR extends CreateEnv
             ],
         ]);
         foreach ($commands as $command) {
+            $output->writeln(['Running command: ' . implode(' ', $command)]);
             $this->processHelper->run(new NullOutput(), new Process($command));
         }
         chdir($originalDir ?: $environment->getBaseDir());
