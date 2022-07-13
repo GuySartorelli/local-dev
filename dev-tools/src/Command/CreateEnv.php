@@ -5,12 +5,14 @@ namespace DevTools\Command;
 use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
+use DevTools\Utility\ProcessOutputter;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -42,6 +44,8 @@ class CreateEnv extends BaseCommand
 
     protected ProcessHelper $processHelper;
 
+    protected ProcessOutputter $outputter;
+
     /**
      * @inheritDoc
      */
@@ -50,6 +54,7 @@ class CreateEnv extends BaseCommand
         parent::initialize($input, $output);
         $this->filesystem = new Filesystem();
         $this->processHelper = $this->getHelper('process');
+        $this->outputter = new ProcessOutputter($output);
         $this->normaliseRecipe();
         // Need password to update hosts - get that first so user can walk away while the rest processes.
         $this->setVar('password', $this->getPassword());
@@ -184,7 +189,7 @@ class CreateEnv extends BaseCommand
         // Run composer command
         $process = new Process($composerCommand);
         $process->setTimeout(null);
-        $result = $this->processHelper->run($output, $process);
+        $result = $this->processHelper->run(new NullOutput(), $process, null, [$this->outputter, 'output']);
         if (!$result->isSuccessful()) {
             $output->writeln('ERROR: Couldn\'t create composer project.');
             Config::releaseSuffix($environment->getSuffix());
