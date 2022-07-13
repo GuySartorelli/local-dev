@@ -37,6 +37,7 @@ $application->addCommands([
     new Command\DestroyEnv(),
     new Command\Docker(),
     new Command\Environment(),
+    new Command\PhpConfig(),
     new Command\Sake(),
 ]);
 

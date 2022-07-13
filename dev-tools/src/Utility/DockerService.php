@@ -4,6 +4,7 @@ namespace DevTools\Utility;
 
 use InvalidArgumentException;
 use Symfony\Component\Console\Helper\ProcessHelper;
+use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 
@@ -13,27 +14,29 @@ final class DockerService
 
     private ?ProcessHelper $processHelper;
 
-    private ?OutputInterface $output;
+    private ?ProcessOutputter $outputter;
 
     public function __construct(Environment $environment, ?ProcessHelper $processHelper = null, ?OutputInterface $output = null)
     {
         $this->environment = $environment;
         $this->processHelper = $processHelper;
-        $this->output = $output;
+        $this->outputter = new ProcessOutputter($output);
     }
 
     /**
      * Build and start docker containers in the docker-compose.yml file for the environment
      */
-    public function up(): bool
+    public function up(bool $fullBuild = true): bool
     {
         $upCommand = [
             'docker',
             'compose',
             'up',
-            '--build',
-            '-d',
         ];
+        if ($fullBuild) {
+            $upCommand[] = '--build';
+        }
+        $upCommand[] = '-d';
         $originalDir = getcwd();
         chdir($this->environment->getDockerDir());
         $retVal = $this->runCommand($upCommand);
@@ -89,8 +92,8 @@ final class DockerService
     {
         $process = new Process($command);
         $process->setTimeout(null);
-        if ($this->processHelper && $this->output) {
-            $process = $this->processHelper->run($this->output, $process);
+        if ($this->processHelper && $this->outputter) {
+            $process = $this->processHelper->run(new NullOutput(), $process, null, [$this->outputter, 'output']);
             return $process->isSuccessful();
         } else {
             $process->run();
