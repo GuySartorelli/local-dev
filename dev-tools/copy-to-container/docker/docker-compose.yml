@@ -34,7 +34,7 @@ services:
 
   mariadb:
     container_name: ${PROJECT_NAME}_mariadb
-    image: mariadb:10.5.2
+    image: mariadb:10.8
     volumes:
       - mariadb-volume:/var/lib/mysql
     environment:
