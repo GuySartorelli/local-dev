@@ -39,6 +39,7 @@ $application->addCommands([
     (new Command\Environment())->setAliases(['info']),
     new Command\PhpConfig(),
     new Command\Sake(),
+    new Command\Behat(),
 ]);
 
 // start
