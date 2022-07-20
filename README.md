@@ -3,7 +3,8 @@
   - e.g.: `export PATH=$PATH:/home/gsartorelli/local-dev/bin`
 
 ## Usage
-Run `dev-tools list` to see available commands and usage.
-Run `dev-tools help [command]` to get help information for the script or for a specific command.
+- Run `dev-tools list` to see available commands and usage.
+- Run `dev-tools help [command]` to get help information for the script or for a specific command.
 
-Use `git-set-remotes` to automatically add remotes for silverstripe forks.
+- Use `git-set-remotes` to automatically add remotes for silverstripe forks.
+  This will probably eventually be replaced with a dev-tools command.
