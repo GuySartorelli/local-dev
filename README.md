@@ -1,4 +1,6 @@
 ## Setup
+- Copy `/dev-tools/.env.example` to `/dev-tools/.env`
+  - Fill in and change details as appropriate
 - Add the bin directory to $PATH in your .bashrc
   - e.g.: `export PATH=$PATH:/home/gsartorelli/local-dev/bin`
 
