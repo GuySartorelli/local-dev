@@ -5,8 +5,8 @@ namespace DevTools\Command;
 use DevTools\Utility\Environment as Env;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Path;
 
@@ -21,7 +21,7 @@ class Environment extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getOption('env-path')), getcwd());
+        $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
         try {
             $env = new Env($proposedPath);
         } catch (LogicException $e) {
@@ -29,8 +29,6 @@ class Environment extends BaseCommand
             return Command::INVALID;
         }
 
-        // TODO fetch php version
-        // TODO fetch whether debug is enabled
         // TODO fetch whether docker containers are running
 
         $output->write([
@@ -53,13 +51,11 @@ class Environment extends BaseCommand
         $desc
         With no options or arguments, this just prints information.
         HELP);
-        $this->addOption(
+        $this->addArgument(
             'env-path',
-            'p',
-            InputOption::VALUE_OPTIONAL,
+            InputArgument::OPTIONAL,
             'The full path to the directory of the environment.',
             './'
         );
-        // TODO add options for setting PHP version, toggling (or setting) xdebug on/off, etc
     }
 }
