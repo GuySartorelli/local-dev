@@ -70,7 +70,12 @@ class CreateEnvForPR extends CreateEnv
         if ($exitSoFar !== Command::SUCCESS) {
             return $exitSoFar;
         }
-        $this->prepareGitStuff();
+
+        if (str_contains($input->getOption('composer-args') ?? '', '--no-install')) {
+            $output->writeln('Composer not installed. Cannot checkout PR.');
+        } else {
+            $this->prepareGitStuff();
+        }
         return Command::SUCCESS;
     }
 
