@@ -138,7 +138,8 @@ class PhpConfig extends BaseCommand
         }
         $path = $this->getDebugPath($version);
         $output->writeln("Turning debug $onOff");
-        return $this->runDockerCommand("echo \"$value\" > \"{$path}\"", true);
+        $command = "echo \"$value\" > \"{$path}\" && /etc/init.d/apache2 reload";
+        return $this->runDockerCommand($command, true);
     }
 
     protected function debugIsEnabled(?string $phpVersion = null): bool
