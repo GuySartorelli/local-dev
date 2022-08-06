@@ -9,4 +9,7 @@
 - Finish up todos in codebase
 - Update README
 - Sort out verbosity (maybe just make quiet shut some of the stuff like composer up)
+- Set up a meta web server
+  - basic page showing available projects with some basic info (url, mailhog, php version, etc)
+  - phpmyadmin or similar to manage db
 - ??
