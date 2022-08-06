@@ -148,10 +148,13 @@ class CreateEnv extends BaseCommand
             $this->filesystem->mirror(Path::join(Config::getCopyDir(), 'webroot'), $webDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 '.env',
-                'run-behat',
             ];
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($webDir, $file);
+                if (!$this->filesystem->exists($filePath)) {
+                    $output->writeln("File '$file' doesn't exist!");
+                    return Command::FAILURE;
+                }
                 $this->replacePlaceholders($filePath);
             }
         } catch (IOException $e) {
