@@ -76,12 +76,15 @@ class CreateEnv extends BaseCommand
         // Raw environment dir setup
         $failureCode = $this->prepareEnvDir();
         if ($failureCode) {
+            Config::releaseSuffix($environment->getSuffix());
             return $failureCode;
         }
 
         // Prepare webroot
         $failureCode = $this->prepareWebRoot();
         if ($failureCode) {
+            Config::releaseSuffix($environment->getSuffix());
+            $this->filesystem->remove($environment->getBaseDir());
             return $failureCode;
         }
 
@@ -123,7 +126,6 @@ class CreateEnv extends BaseCommand
             $this->filesystem->mkdir([$envPath, $logsDir, Path::join($logsDir, 'apache2')]);
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t create environment directory: ' . $e->getMessage());
-            Config::releaseSuffix($environment->getSuffix());
             return Command::FAILURE;
         }
         return false;
@@ -154,8 +156,6 @@ class CreateEnv extends BaseCommand
             }
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t set up webroot files: ' . $e->getMessage());
-            $this->filesystem->remove($environment->getBaseDir());
-            Config::releaseSuffix($environment->getSuffix());
             return Command::FAILURE;
         }
 
@@ -192,8 +192,6 @@ class CreateEnv extends BaseCommand
         $result = $this->processHelper->run(new NullOutput(), $process, null, [$this->outputter, 'output']);
         if (!$result->isSuccessful()) {
             $output->writeln('ERROR: Couldn\'t create composer project.');
-            Config::releaseSuffix($environment->getSuffix());
-            $this->filesystem->remove($environment->getBaseDir());
             return Command::FAILURE;
         }
 
