@@ -91,21 +91,23 @@ class CreateEnvForPR extends CreateEnv
         $output->writeln('Setting remote ' . $pr['remote'] . ' as "pr" and checking out branch ' . $pr['branch']);
         $prPath = Path::join($environment->getWebRoot(), 'vendor', $this->getVar('composerName'));
         chdir($prPath);
-        $commands = [];
-        if (!in_array($pr['from-org'], ['creative-commoners', 'silverstripe', 'silverstripe-security'])) {
-            $output->writeln('Remote is not used by CMS Squad');
-            // Add the PR remote
-            $commands[] = [
+        $commands = [
+            // Add all our normal remotes (just in case) and fetch
+            ['git-set-remotes'],
+            // Add the PR remote (if this is a security or creative-commoners PR it will override that remote)
+            [
                 'git',
                 'remote',
                 'add',
                 'pr',
                 $pr['remote'],
-            ];
-        }
-        $commands = array_merge($commands, [
-            // Add all our normal remotes (just in case) and fetch all
-            ['git-set-remotes'],
+            ],
+            // Fetch the PR remote
+            [
+                'git',
+                'fetch',
+                'pr',
+            ],
             // Checkout the PR branch
             [
                 'git',
@@ -113,7 +115,7 @@ class CreateEnvForPR extends CreateEnv
                 '--track',
                 'pr/' . $pr['branch'],
             ],
-        ]);
+        ];
         foreach ($commands as $command) {
             $output->writeln(['Running command: ' . implode(' ', $command)]);
             $this->processHelper->run(new NullOutput(), new Process($command));
