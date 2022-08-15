@@ -20,6 +20,8 @@ class Sake extends BaseCommand
 
     protected static $defaultDescription = 'Run sake commands in the webserver docker container.';
 
+    protected static bool $notifyOnCompletion = true;
+
     private ProcessHelper $processHelper;
 
     /**

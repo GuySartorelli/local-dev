@@ -20,6 +20,8 @@ class Docker extends BaseCommand
 
     protected static $defaultDescription = 'Run commands in the webserver docker container.';
 
+    protected static bool $notifyOnCompletion = true;
+
     private ProcessHelper $processHelper;
 
     /**

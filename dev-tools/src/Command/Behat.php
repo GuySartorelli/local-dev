@@ -14,13 +14,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
-use Symfony\Component\Process\Process;
 
 class Behat extends BaseCommand
 {
     protected static $defaultName = 'behat';
 
     protected static $defaultDescription = 'Run behat in the webserver docker container.';
+
+    protected static bool $notifyOnCompletion = true;
 
     private ProcessHelper $processHelper;
 

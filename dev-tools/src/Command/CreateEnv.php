@@ -40,6 +40,8 @@ class CreateEnv extends BaseCommand
      */
     protected static string $invalidEnvNameChars = ' !@#$%^&*()"\',.<>/?:;';
 
+    protected static bool $notifyOnCompletion = true;
+
     protected Filesystem $filesystem;
 
     protected ProcessHelper $processHelper;
