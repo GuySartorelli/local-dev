@@ -9,6 +9,7 @@ use DevTools\Utility\ProcessOutputter;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -40,7 +41,7 @@ class CreateEnv extends BaseCommand
      */
     protected static string $invalidEnvNameChars = ' !@#$%^&*()"\',.<>/?:;';
 
-    protected static bool $notifyOnCompletion = true;
+    protected bool $notifyOnCompletion = true;
 
     protected Filesystem $filesystem;
 
@@ -82,17 +83,20 @@ class CreateEnv extends BaseCommand
             return $failureCode;
         }
 
+        // Create webdir so that docker has it for use in its volume
+        $this->filesystem->mkdir($environment->getWebRoot());
+
+        // Docker stuff
+        $failureCode = $this->spinUpDocker();
+        if ($failureCode) {
+            return $failureCode;
+        }
+
         // Prepare webroot
         $failureCode = $this->prepareWebRoot();
         if ($failureCode) {
             Config::releaseSuffix($environment->getSuffix());
             $this->filesystem->remove($environment->getBaseDir());
-            return $failureCode;
-        }
-
-        // Docker stuff
-        $failureCode = $this->spinUpDocker();
-        if ($failureCode) {
             return $failureCode;
         }
 
@@ -102,14 +106,44 @@ class CreateEnv extends BaseCommand
             return $failureCode;
         }
 
-        // TODO run vendor/bin/sake dev/build in the docker container
+        // Run dev/build
+        $this->buildDatabase();
 
         $output->write([
             'Completed successfully.',
-            "Build the db by going to {$environment->getBaseURL()}/dev/build",
-            'Or run: dev-tools sake dev/build',
+            "Navigate to {$environment->getBaseURL()}",
         ], true);
         return Command::SUCCESS;
+    }
+
+    protected function buildDatabase(): bool
+    {
+        $input = $this->getVar('input');
+        $output = $this->getVar('output');
+        /** @var Environment $environment */
+        $environment = $this->getVar('env');
+
+        if (!str_contains($input->getOption('composer-args') ?? '', '--no-install')) {
+            // run vendor/bin/sake dev/build in the docker container
+            /** @var BaseCommand $sake */
+            $sake = $this->getApplication()->find('sake');
+            $sake->setNotifyOnCompletion(false);
+            $args = [
+                '--env-path' => $environment->getBaseDir(),
+                'task' => ['dev/build'],
+            ];
+            $sakeReturn = $sake->run(new ArrayInput($args), $output);
+        } else {
+            $sakeReturn = Command::INVALID;
+        }
+        if ($sakeReturn !== Command::SUCCESS) {
+            $output->writeln([
+                'Unable to build the db.',
+                "Build the db by going to {$environment->getBaseURL()}/dev/build",
+                'Or run: dev-tools sake dev/build -p ' . $environment->getBaseDir(),
+            ]);
+        }
+        return $sakeReturn === Command::SUCCESS;
     }
 
     protected function prepareEnvDir(): bool

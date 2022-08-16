@@ -16,7 +16,7 @@ abstract class BaseCommand extends Command
     /**
      * If true, notifies when a command has finished.
      */
-    protected static bool $notifyOnCompletion = false;
+    protected bool $notifyOnCompletion = false;
 
     /**
      * @inheritDoc
@@ -71,9 +71,15 @@ abstract class BaseCommand extends Command
     public function run(InputInterface $input, OutputInterface $output): int
     {
         $exitCode = parent::run($input, $output);
-        if (static::$notifyOnCompletion) {
+        if ($this->notifyOnCompletion) {
             $this->notify($exitCode);
         }
         return $exitCode;
+    }
+
+    public function setNotifyOnCompletion(bool $val): self
+    {
+        $this->notifyOnCompletion = $val;
+        return $this;
     }
 }
