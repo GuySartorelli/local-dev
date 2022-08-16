@@ -8,6 +8,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Path;
 
 class Environment extends BaseCommand
@@ -21,17 +22,19 @@ class Environment extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
         try {
             $env = new Env($proposedPath);
         } catch (LogicException $e) {
-            $output->writeln($e->getMessage());
+            $io->error($e->getMessage());
             return Command::INVALID;
         }
 
         // TODO fetch whether docker containers are running
 
-        $output->write([
+        $io->write([
             "URL: {$env->getBaseURL()}",
             "Mailhog: {$env->getBaseURL()}:8025",
             "DB Port: 33{$env->getSuffix()}",

@@ -9,6 +9,7 @@ trait UsesPassword
 {
     private function getPassword(): ?string
     {
+        // NOTE: Do not use SymfonyStyle here - we want to mimic the default sudo prompt.
         $input = $this->getVar('input');
         $output = $this->getVar('output');
         /** @var QuestionHelper $helper */

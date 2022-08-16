@@ -8,7 +8,9 @@
     - Pushes to creative-commoners by default
 - Finish up todos in codebase
 - Update README
-- Sort out verbosity (maybe just make quiet shut up some of the stuff like composer and dev/build on up)
+- Add nicer formatting of output
+  - Colour where appropriate
+  - Sort out verbosity (maybe just make quiet shut up some of the stuff like composer and dev/build on up)
 - Set up a meta web server
   - basic page showing available projects with some basic info (url, mailhog, php version, etc)
   - phpmyadmin or similar to manage db

@@ -12,6 +12,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
@@ -42,16 +43,18 @@ class Behat extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getOption('env-path')), getcwd());
         try {
             $env = new Environment($proposedPath);
             $this->setVar('env', $env);
         } catch (LogicException $e) {
-            $output->writeln($e->getMessage());
+            $io->error($e->getMessage());
             return Command::INVALID;
         }
 
-        $output->writeln('Clearing artifacts dir');
+        $io->writeln(self::STEP_STYLE . 'Clearing artifacts dir</>');
         $artifactsPath = Path::join($env->getWebRoot(), 'artifacts');
         $fileSystem = new Filesystem();
         if ($fileSystem->exists($artifactsPath)) {
@@ -59,13 +62,13 @@ class Behat extends BaseCommand
         }
         $fileSystem->mkdir($artifactsPath);
 
-        $output->writeln('Killing any old chromedriver instances.');
+        $io->writeln(self::STEP_STYLE . 'Killing any old chromedriver instances.</>');
         $failureCode = $this->runDockerCommand('DRIVER_PID=$(pgrep chromedriver); if [ -n "$DRIVER_PID" ]; then kill -15 $DRIVER_PID > /dev/null; fi');
         if ($failureCode) {
             return $failureCode;
         }
 
-        $output->writeln('Starting up chromedriver and runnig behat.');
+        $io->writeln(self::STEP_STYLE . 'Starting up chromedriver and running behat.</>');
         $suites = implode(' ', $input->getArgument('modules'));
         $tags = $input->getOption('tags');
         if ($tags) {
@@ -76,19 +79,20 @@ class Behat extends BaseCommand
             return $failureCode;
         }
 
-        $output->writeln('Behat ran successfully.');
+        $io->success('Behat ran successfully.');
         return Command::SUCCESS;
     }
 
     protected function runDockerCommand(string $command): int|bool
     {
-        $output = $this->getVar('output');
-        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
-        $output->writeln("Running command in docker container: '$command'");
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $io);
+        $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
 
         $success = $dockerService->exec($command);
         if (!$success) {
-            $output->writeln('ERROR: Problem occured while running command in docker container.');
+            $io->error('Problem occured while running command in docker container.');
             return Command::FAILURE;
         }
 

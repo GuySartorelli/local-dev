@@ -11,6 +11,7 @@ use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -46,11 +47,13 @@ class DestroyEnv extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
         try {
             $this->setVar('env', $environment = new Environment($proposedPath));
         } catch (LogicException $e) {
-            $output->writeln($e->getMessage());
+            $io->error($e->getMessage());
             return Command::INVALID;
         }
 
@@ -62,10 +65,10 @@ class DestroyEnv extends BaseCommand
 
         // Delete environment directory
         try {
-            $output->writeln('Removing environment directory');
+            $io->writeln(self::STEP_STYLE . 'Removing environment directory</>');
             $this->filesystem->remove($environment->getBaseDir());
         } catch (IOException $e) {
-            $output->writeln('ERROR: Couldn\'t delete environment directory: ' . $e->getMessage());
+            $io->error('Couldn\'t delete environment directory: ' . $e->getMessage());
             return Command::FAILURE;
         }
 
@@ -79,19 +82,20 @@ class DestroyEnv extends BaseCommand
             return $failureCode;
         }
 
-        $output->writeln("Env {$environment->getName()} successfully destroyed.");
+        $io->success("Env {$environment->getName()} successfully destroyed.");
         return Command::SUCCESS;
     }
 
     protected function pullDownDocker(): int|bool
     {
-        $output = $this->getVar('output');
-        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
-        $output->writeln('Taking down docker');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $io);
+        $io->writeln(self::STEP_STYLE . 'Taking down docker</>');
 
         $success = $dockerService->down();
         if (!$success) {
-            $output->writeln('ERROR: Problem occured while stopping docker containers.');
+            $io->error('Problem occured while stopping docker containers.');
             return Command::FAILURE;
         }
 
@@ -100,10 +104,11 @@ class DestroyEnv extends BaseCommand
 
     protected function cleanUpHosts(): int|bool
     {
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
-        $output->writeln('Updating hosts file');
+        $io->writeln(self::STEP_STYLE . 'Updating hosts file</>');
 
         $hadError = true;
         if ($password = $this->getVar('password')) {
@@ -119,13 +124,13 @@ class DestroyEnv extends BaseCommand
             } else {
                 exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . trim($hostsContent) . '" > /etc/hosts\' 2> /dev/null', $execOut, $hadError);
                 if ($execOut) {
-                    $output->writeln($execOut);
+                    $io->writeln($execOut);
                 }
             }
         }
 
         if ($hadError) {
-            $output->writeln('ERROR: Couldn\'t remove hosts entry. Please manually remove the relevant line in /etc/hosts');
+            $io->error('Couldn\'t remove hosts entry. Please manually remove the relevant line in /etc/hosts');
             return Command::FAILURE;
         }
 

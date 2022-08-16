@@ -15,6 +15,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
@@ -68,6 +69,8 @@ class CreateEnv extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $suffix = Config::getNextAvailableSuffix();
         $envName = $this->getEnvName() . '_' . $suffix;
         $this->setVar('env', $environment = new Environment(Path::join($input->getOption('project-path'), $envName), true));
@@ -109,22 +112,23 @@ class CreateEnv extends BaseCommand
         // Run dev/build
         $this->buildDatabase();
 
-        $output->write([
-            'Completed successfully.',
-            "Navigate to {$environment->getBaseURL()}",
-        ], true);
+        $io->success('Completed successfully.');
+        $url = $environment->getBaseURL();
+        $io->writeln(self::STEP_STYLE . "Navigate to <href=$url>$url</></>");
         return Command::SUCCESS;
     }
 
     protected function buildDatabase(): bool
     {
         $input = $this->getVar('input');
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
 
         if (!str_contains($input->getOption('composer-args') ?? '', '--no-install')) {
             // run vendor/bin/sake dev/build in the docker container
+            $io->writeln(self::STEP_STYLE . 'Building database.</>');
             /** @var BaseCommand $sake */
             $sake = $this->getApplication()->find('sake');
             $sake->setNotifyOnCompletion(false);
@@ -132,14 +136,15 @@ class CreateEnv extends BaseCommand
                 '--env-path' => $environment->getBaseDir(),
                 'task' => ['dev/build'],
             ];
-            $sakeReturn = $sake->run(new ArrayInput($args), $output);
+            $sakeReturn = $sake->run(new ArrayInput($args), $io);
         } else {
             $sakeReturn = Command::INVALID;
         }
         if ($sakeReturn !== Command::SUCCESS) {
-            $output->writeln([
+            $url = "{$environment->getBaseURL()}/dev/build>";
+            $io->warning([
                 'Unable to build the db.',
-                "Build the db by going to {$environment->getBaseURL()}/dev/build",
+                "Build the db by going to <href=$url>$url</>",
                 'Or run: dev-tools sake dev/build -p ' . $environment->getBaseDir(),
             ]);
         }
@@ -148,20 +153,21 @@ class CreateEnv extends BaseCommand
 
     protected function prepareEnvDir(): bool
     {
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $envPath = $environment->getBaseDir();
         if (is_dir($envPath)) {
-            $output->writeln('ERROR: Environment path already exists: ' . $envPath);
+            $io->error('Environment path already exists: ' . $envPath);
             return Command::INVALID;
         }
-        $output->writeln("Making directory '$envPath'");
+        $io->writeln(self::STEP_STYLE . "Making directory '$envPath'</>");
         try {
             $logsDir = Path::join($envPath, 'logs');
             $this->filesystem->mkdir([$envPath, $logsDir, Path::join($logsDir, 'apache2')]);
         } catch (IOException $e) {
-            $output->writeln('ERROR: Couldn\'t create environment directory: ' . $e->getMessage());
+            $io->error('Couldn\'t create environment directory: ' . $e->getMessage());
             return Command::FAILURE;
         }
         return false;
@@ -169,7 +175,8 @@ class CreateEnv extends BaseCommand
 
     protected function prepareWebRoot(): int|bool
     {
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $webDir = $environment->getWebRoot();
@@ -180,7 +187,7 @@ class CreateEnv extends BaseCommand
         }
         try {
             // Setup environment-specific web files
-            $output->writeln('Preparing extra webroot files');
+            $io->writeln(self::STEP_STYLE . 'Preparing extra webroot files</>');
             $this->filesystem->mirror(Path::join(Config::getCopyDir(), 'webroot'), $webDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 '.env',
@@ -188,13 +195,13 @@ class CreateEnv extends BaseCommand
             foreach ($filesWithPlaceholders as $file) {
                 $filePath = Path::join($webDir, $file);
                 if (!$this->filesystem->exists($filePath)) {
-                    $output->writeln("File '$file' doesn't exist!");
+                    $io->error("File '$file' doesn't exist!");
                     return Command::FAILURE;
                 }
                 $this->replacePlaceholders($filePath);
             }
         } catch (IOException $e) {
-            $output->writeln('ERROR: Couldn\'t set up webroot files: ' . $e->getMessage());
+            $io->error('Couldn\'t set up webroot files: ' . $e->getMessage());
             return Command::FAILURE;
         }
 
@@ -204,10 +211,11 @@ class CreateEnv extends BaseCommand
     protected function buildComposerProject(): int|bool
     {
         $input = $this->getVar('input');
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
-        $output->writeln('Building composer project');
+        $io->writeln(self::STEP_STYLE . 'Building composer project</>');
 
         // Prepare composer command
         $composerArgs = [
@@ -230,7 +238,7 @@ class CreateEnv extends BaseCommand
         $process->setTimeout(null);
         $result = $this->processHelper->run(new NullOutput(), $process, null, [$this->outputter, 'output']);
         if (!$result->isSuccessful()) {
-            $output->writeln('ERROR: Couldn\'t create composer project.');
+            $io->error('Couldn\'t create composer project.');
             return Command::FAILURE;
         }
 
@@ -239,15 +247,16 @@ class CreateEnv extends BaseCommand
 
     protected function spinUpDocker(): int|bool
     {
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
-        $output->writeln('Spinning up docker');
+        $io->writeln(self::STEP_STYLE . 'Spinning up docker</>');
 
         try {
             // Setup docker files
             $dockerDir = $environment->getDockerDir();
-            $output->writeln('Preparing docker directory');
+            $io->writeln(self::STEP_STYLE . 'Preparing docker directory</>');
             $copyFrom = Path::join(Config::getCopyDir(), 'docker/');
             $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
             $filesWithPlaceholders = [
@@ -260,14 +269,14 @@ class CreateEnv extends BaseCommand
                 $this->replacePlaceholders($filePath);
             }
         } catch (IOException $e) {
-            $output->writeln('ERROR: Couldn\'t set up docker or webroot files: ' . $e->getMessage());
+            $io->error('Couldn\'t set up docker or webroot files: ' . $e->getMessage());
             return Command::FAILURE;
         }
 
-        $dockerService = new DockerService($environment, $this->processHelper, $output);
+        $dockerService = new DockerService($environment, $this->processHelper, $io);
         $success = $dockerService->up();
         if (!$success) {
-            $output->writeln('ERROR: Couldn\'t start docker containers.');
+            $io->error('Couldn\'t start docker containers.');
             return Command::FAILURE;
         }
 
@@ -276,24 +285,25 @@ class CreateEnv extends BaseCommand
 
     protected function updateHosts(): int|bool
     {
-        $output = $this->getVar('output');
-        $output->writeln('Updating hosts file');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $hostname = $environment->getHostName();
         $hostsEntry = "{$environment->getIpAddress()}    $hostname";
         $hadError = true;
 
+        $io->writeln(self::STEP_STYLE . 'Updating hosts file</>');
         if ($password = $this->getVar('password')) {
             // Update hosts file
             exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . $hostsEntry . '" >> /etc/hosts\' 2> /dev/null', $execOut, $hadError);
             if ($execOut) {
-                $output->writeln($execOut);
+                $io->writeln($execOut);
             }
         }
         if ($hadError) {
-            $output->writeln([
-                'ERROR: Couldn\'t add to hosts entry. Please manually add the following line to /etc/hosts',
+            $io->warning([
+                'Couldn\'t add to hosts entry. Please manually add the following line to /etc/hosts',
                 $hostsEntry,
             ]);
             return Command::FAILURE;

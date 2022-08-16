@@ -8,6 +8,7 @@ use Joli\JoliNotif\NotifierFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 abstract class BaseCommand extends Command
 {
@@ -17,6 +18,8 @@ abstract class BaseCommand extends Command
      * If true, notifies when a command has finished.
      */
     protected bool $notifyOnCompletion = false;
+
+    protected const STEP_STYLE = '<fg=blue>';
 
     /**
      * @inheritDoc
@@ -29,6 +32,7 @@ abstract class BaseCommand extends Command
         $this->resetVars();
         $this->setVar('input', $input);
         $this->setVar('output', $output);
+        $this->setVar('io', new SymfonyStyle($input, $output));
     }
 
     protected function resetVars(): void

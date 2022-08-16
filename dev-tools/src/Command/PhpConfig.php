@@ -13,6 +13,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Path;
 
 // TODO either subclass the Docker command or call that command from here to make code more DRY
@@ -48,17 +49,19 @@ class PhpConfig extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
         try {
             $this->setVar('env', new Environment($proposedPath));
         } catch (LogicException $e) {
-            $output->writeln($e->getMessage());
+            $io->error($e->getMessage());
             return Command::INVALID;
         }
 
         if ($phpVersion = $input->getOption('php-version')) {
             if ($input->getOption('values-only')) {
-                $output->writeln('PHP version is ' . $this->getVersion());
+                $io->info('PHP version is ' . $this->getVersion());
             } else {
                 $failureCode = $this->swapToVersion($phpVersion);
                 if ($failureCode) {
@@ -70,7 +73,7 @@ class PhpConfig extends BaseCommand
         if ($input->getOption('toggle-debug')) {
             if ($input->getOption('values-only')) {
                 $onoff = $this->debugIsEnabled() ? 'on' : 'off';
-                $output->writeln('Debug is ' . $onoff);
+                $io->info('Debug is ' . $onoff);
             } else {
                 $failureCode = $this->toggleDebug();
                 if ($failureCode) {
@@ -91,15 +94,16 @@ class PhpConfig extends BaseCommand
 
     protected function swapToVersion(string $version): int|bool
     {
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $oldVersion = $this->getVersion();
 
         if ($oldVersion === $version) {
-            $output->writeln("Already using version $version - skipping.");
+            $io->writeln("Already using version $version - skipping.");
             return false;
         }
 
-        $output->writeln("Swapping PHP from $oldVersion to $version.");
+        $io->writeln("Swapping PHP from $oldVersion to $version.");
 
         $command = <<<EOL
         rm /etc/alternatives/php && \\
@@ -128,7 +132,8 @@ class PhpConfig extends BaseCommand
 
     protected function toggleDebug(): int|bool
     {
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $value = 'zend_extension=xdebug.so';
         $version = $this->getVersion();
         $onOff = 'on';
@@ -137,12 +142,12 @@ class PhpConfig extends BaseCommand
             $value = ';' . $value;
         }
         $path = $this->getDebugPath($version);
-        $output->writeln("Turning debug $onOff");
+        $io->writeln("Turning debug $onOff");
         $command = "echo \"$value\" > \"{$path}\" && /etc/init.d/apache2 reload";
         return $this->runDockerCommand($command, true);
     }
 
-    protected function debugIsEnabled(?string $phpVersion = null): bool
+    protected function debugIsEnabled(?string $version = null): bool
     {
         $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
         $version ??= $this->getVersion();
@@ -167,6 +172,8 @@ class PhpConfig extends BaseCommand
 
     protected function runDockerCommand(string $command, bool $asRoot = false, ?OutputInterface $output = null, bool $requiresRestart = false): int|bool
     {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $quiet = false;
         if (!$output) {
             $quiet = true;
@@ -174,12 +181,12 @@ class PhpConfig extends BaseCommand
         }
         $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
         if ($quiet) {
-            $output->writeln("Running command in docker container: '$command'");
+            $output->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
         }
 
         $success = $dockerService->exec($command, $asRoot);
         if (!$success) {
-            $this->getVar('output')->writeln('ERROR: Problem occured while running command in docker container.');
+            $io->error('Problem occured while running command in docker container.');
             return Command::FAILURE;
         }
 
@@ -187,7 +194,7 @@ class PhpConfig extends BaseCommand
             sleep(1);
             $success = $dockerService->up(false);
             if (!$success) {
-                $this->getVar('output')->writeln('ERROR: Could not restart container.');
+                $io->error('Could not restart container.');
                 return Command::FAILURE;
             }
         }

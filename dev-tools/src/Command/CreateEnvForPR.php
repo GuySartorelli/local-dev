@@ -66,13 +66,15 @@ class CreateEnvForPR extends CreateEnv
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         $exitSoFar = parent::execute($input, $output);
         if ($exitSoFar !== Command::SUCCESS) {
             return $exitSoFar;
         }
 
         if (str_contains($input->getOption('composer-args') ?? '', '--no-install')) {
-            $output->writeln('Composer not installed. Cannot checkout PR.');
+            $io->warning('Composer not installed. Cannot checkout PR.');
         } else {
             $this->prepareGitStuff();
         }
@@ -81,14 +83,14 @@ class CreateEnvForPR extends CreateEnv
 
     protected function prepareGitStuff()
     {
-        /** @var OutputInterface $output */
-        $output = $this->getVar('output');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $pr = $this->getVar('prDetails');
         $originalDir = getcwd();
 
-        $output->writeln('Setting remote ' . $pr['remote'] . ' as "pr" and checking out branch ' . $pr['branch']);
+        $io->writeln(self::STEP_STYLE . 'Setting remote ' . $pr['remote'] . ' as "pr" and checking out branch ' . $pr['branch'] . '</>');
         $prPath = Path::join($environment->getWebRoot(), 'vendor', $this->getVar('composerName'));
         chdir($prPath);
         $commands = [
@@ -117,12 +119,12 @@ class CreateEnvForPR extends CreateEnv
             ],
         ];
         foreach ($commands as $command) {
-            $output->writeln(['Running command: ' . implode(' ', $command)]);
+            $io->writeln(self::STEP_STYLE . 'Running command: ' . implode(' ', $command) . '</>');
             $this->processHelper->run(new NullOutput(), new Process($command));
         }
         chdir($originalDir ?: $environment->getBaseDir());
 
-        $output->writeln("cd to '$prPath' when ready.");
+        $io->writeln(self::STEP_STYLE . "cd to '$prPath' when ready.</>");
     }
 
     /**
