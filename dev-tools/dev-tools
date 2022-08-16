@@ -36,7 +36,7 @@ $application->addCommands([
     new Command\CreateEnvForPR(),
     new Command\DestroyEnv(),
     new Command\Docker(),
-    (new Command\Environment())->setAliases(['info']),
+    new Command\Environment(),
     new Command\PhpConfig(),
     new Command\Sake(),
     new Command\Behat(),
