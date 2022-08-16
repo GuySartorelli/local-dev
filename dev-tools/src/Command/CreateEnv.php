@@ -89,14 +89,14 @@ class CreateEnv extends BaseCommand
         // Docker stuff
         $failureCode = $this->spinUpDocker();
         if ($failureCode) {
+            Config::releaseSuffix($environment->getSuffix());
+            $this->filesystem->remove($environment->getBaseDir());
             return $failureCode;
         }
 
         // Prepare webroot
         $failureCode = $this->prepareWebRoot();
         if ($failureCode) {
-            Config::releaseSuffix($environment->getSuffix());
-            $this->filesystem->remove($environment->getBaseDir());
             return $failureCode;
         }
 
@@ -261,15 +261,12 @@ class CreateEnv extends BaseCommand
             }
         } catch (IOException $e) {
             $output->writeln('ERROR: Couldn\'t set up docker or webroot files: ' . $e->getMessage());
-            $this->filesystem->remove($environment->getBaseDir());
-            Config::releaseSuffix($environment->getSuffix());
             return Command::FAILURE;
         }
 
         $dockerService = new DockerService($environment, $this->processHelper, $output);
         $success = $dockerService->up();
         if (!$success) {
-            // TODO Revert??
             $output->writeln('ERROR: Couldn\'t start docker containers.');
             return Command::FAILURE;
         }
