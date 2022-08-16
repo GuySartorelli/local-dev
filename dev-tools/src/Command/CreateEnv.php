@@ -286,7 +286,6 @@ class CreateEnv extends BaseCommand
 
         if ($password = $this->getVar('password')) {
             // Update hosts file
-            // TODO verify this entry hasn't already been added
             exec('echo "' . $password . '" | sudo -S bash -c \'echo "' . $hostsEntry . '" >> /etc/hosts\' 2> /dev/null', $execOut, $hadError);
             if ($execOut) {
                 $output->writeln($execOut);
@@ -348,7 +347,6 @@ class CreateEnv extends BaseCommand
         $invalidCharsRegex = '/[' . preg_quote(static::$invalidEnvNameChars, '/') . ']/';
         // Use env name if defined
         if ($name = $input->getArgument('env-name')) {
-            // TODO validate against duplicate environment names
             if (preg_match($invalidCharsRegex, $name)) {
                 throw new LogicException(
                     'env-name must not contain the following characters: ' . static::$invalidEnvNameChars
