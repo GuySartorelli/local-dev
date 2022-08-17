@@ -1,5 +1,5 @@
 # Swapped back to 18.04 to debug behat issues - try 20.04 again at some stage, that was probably a red herring.
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -112,27 +112,56 @@ RUN apt-get install -y php8.1-tidy
 RUN apt-get install -y php8.1-xdebug
 RUN apt-get install -y php8.1-zip
 
+
+## Install PHP 8.2
+RUN add-apt-repository "deb http://httpredir.debian.org/debian/ experimental main contrib non-free"
+RUN add-apt-repository "deb http://httpredir.debian.org/debian/ sid main contrib non-free"
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 648ACFD622F3D138 && \
+  apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 0E98404D386FA1D9
+RUN apt-get update
+# libicu71 is unstable but required for php8.2-intl
+RUN apt-get install -y -t=sid libicu71
+RUN apt-get install -y -t=experimental libapache2-mod-php8.2 \
+  php8.2 \
+  php8.2-common \
+  php8.2-opcache \
+  php8.2-bcmath \
+  php8.2-cli \
+  php8.2-curl \
+  php8.2-dev \
+  php8.2-dom \
+  php8.2-gd \
+  php8.2-intl \
+  php8.2-ldap \
+  php8.2-mbstring \
+  php8.2-mysql \
+#   php8.2-pgsql \
+  php8.2-tidy \
+#  php8.2-xdebug \
+  php8.2-zip
+
+
 # PHP CLI
-# Use php8.0 by default
+# Use php8.2 by default
 RUN rm /etc/alternatives/php
-RUN ln -s /usr/bin/php8.0 /etc/alternatives/php
+RUN ln -s /usr/bin/php8.2 /etc/alternatives/php
 
 # Apache2 CLI
-# Defaults to php7.4, change to php8.0
+# Defaults to php7.4, change to php8.2
 RUN rm /etc/apache2/mods-enabled/php7.4.conf
 RUN rm /etc/apache2/mods-enabled/php7.4.load
-RUN ln -s /etc/apache2/mods-available/php8.0.conf /etc/apache2/mods-enabled/php8.0.conf
-RUN ln -s /etc/apache2/mods-available/php8.0.load /etc/apache2/mods-enabled/php8.0.load
+RUN ln -s /etc/apache2/mods-available/php8.2.conf /etc/apache2/mods-enabled/php8.2.conf
+RUN ln -s /etc/apache2/mods-available/php8.2.load /etc/apache2/mods-enabled/php8.2.load
 
 # Install other packages
 RUN apt-get install -y nano
 
 # Install WKHTMLTOPDF QT ptached
-RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
-RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
-RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
-RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
-RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
+# RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
+# RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
+# RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
+# RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
+# RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
 
 # Put localhost in place
 COPY docker_apache_default /etc/apache2/sites-available/000-default.conf
