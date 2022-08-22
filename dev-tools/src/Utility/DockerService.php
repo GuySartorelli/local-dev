@@ -93,7 +93,9 @@ final class DockerService
         $process = new Process($command);
         $process->setTimeout(null);
         if ($this->processHelper && $this->outputter) {
+            $this->outputter->startCommand();
             $process = $this->processHelper->run(new NullOutput(), $process, null, [$this->outputter, 'output']);
+            $this->outputter->endCommand();
             return $process->isSuccessful();
         } else {
             $process->run();

@@ -236,7 +236,9 @@ class CreateEnv extends BaseCommand
         // Run composer command
         $process = new Process($composerCommand);
         $process->setTimeout(null);
+        $this->outputter->startCommand();
         $result = $this->processHelper->run(new NullOutput(), $process, null, [$this->outputter, 'output']);
+        $this->outputter->endCommand();
         if (!$result->isSuccessful()) {
             $io->error('Couldn\'t create composer project.');
             return Command::FAILURE;

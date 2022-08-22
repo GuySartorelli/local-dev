@@ -30,6 +30,9 @@ class Sake extends BaseCommand
      */
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
+        if (!$this->isSubCommand && !$input->getOption('quiet')) {
+            $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
+        }
         if (empty($input->getArgument('task'))) {
             throw new RuntimeException('"task" argument must not be empty.');
         }

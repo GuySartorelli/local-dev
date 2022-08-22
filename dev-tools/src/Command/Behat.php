@@ -31,6 +31,9 @@ class Behat extends BaseCommand
      */
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
+        if (!$this->isSubCommand && !$input->getOption('quiet')) {
+            $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
+        }
         if (empty($input->getArgument('modules'))) {
             throw new RuntimeException('"modules" argument must not be empty.');
         }

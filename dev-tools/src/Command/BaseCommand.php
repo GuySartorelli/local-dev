@@ -28,8 +28,10 @@ abstract class BaseCommand extends Command
      */
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
-        if (!$input->getOption('quiet')) {
-            // $output->setVerbosity(Output::VERBOSITY_DEBUG);
+        if ($input->getOption('quiet')) {
+            // We don't want symfony's definition of quiet - we want OUR definition of quiet.
+            // Symfony's quiet is actually silent.
+            $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         }
         $this->resetVars();
         $this->setVar('input', $input);
