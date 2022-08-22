@@ -1,8 +1,9 @@
 ## Setup
-- Copy `/dev-tools/.env.example` to `/dev-tools/.env`
+- Run `composer install` inside the `./dev-tools/` directory.
+- Copy `./dev-tools/.env.example` to `./dev-tools/.env`
   - Fill in and change details as appropriate
 - Add the bin directory to $PATH in your .bashrc
-  - e.g.: `export PATH=$PATH:/home/gsartorelli/local-dev/bin`
+  - e.g.: `export PATH=$PATH:/home/$USER/local-dev/bin`
 
 ## Usage
 - Run `dev-tools list` to see available commands and usage.
