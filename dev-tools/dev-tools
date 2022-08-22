@@ -20,7 +20,7 @@ $application = new Application('Dev Tools');
 $application->setDefinition(
     new InputDefinition([
         new InputArgument('command', InputArgument::REQUIRED, 'The command to execute'),
-        new InputOption('--quiet', '-q', InputOption::VALUE_NONE, 'Do not output any message'),
+        new InputOption('--quiet', '-q', InputOption::VALUE_NONE, 'Reduce verbosity of messages'),
         new InputOption('--verbose', '-v', InputOption::VALUE_NONE, 'Increase the verbosity of messages: 1 for normal output, 2 for more verbose output and 3 for debug'),
         new InputOption(
             '--help',
