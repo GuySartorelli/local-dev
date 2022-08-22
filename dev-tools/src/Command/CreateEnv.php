@@ -136,7 +136,7 @@ class CreateEnv extends BaseCommand
                 '--env-path' => $environment->getBaseDir(),
                 'task' => ['dev/build'],
             ];
-            $sakeReturn = $sake->run(new ArrayInput($args), $io);
+            $sakeReturn = $sake->run(new ArrayInput($args), $this->getVar('output'));
         } else {
             $sakeReturn = Command::INVALID;
         }
