@@ -22,7 +22,7 @@ class Behat extends BaseCommand
 
     protected static $defaultDescription = 'Run behat in the webserver docker container.';
 
-    protected bool $notifyOnCompletion = true;
+    protected static bool $notifyOnCompletion = true;
 
     private ProcessHelper $processHelper;
 

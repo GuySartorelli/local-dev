@@ -42,7 +42,7 @@ class CreateEnv extends BaseCommand
      */
     protected static string $invalidEnvNameChars = ' !@#$%^&*()"\',.<>/?:;';
 
-    protected bool $notifyOnCompletion = true;
+    protected static bool $notifyOnCompletion = true;
 
     protected Filesystem $filesystem;
 
@@ -131,7 +131,7 @@ class CreateEnv extends BaseCommand
             $io->writeln(self::STEP_STYLE . 'Building database.</>');
             /** @var BaseCommand $sake */
             $sake = $this->getApplication()->find('sake');
-            $sake->setNotifyOnCompletion(false);
+            $sake->setIsSubCommand(true);
             $args = [
                 '--env-path' => $environment->getBaseDir(),
                 'task' => ['dev/build'],

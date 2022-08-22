@@ -21,7 +21,7 @@ class Sake extends BaseCommand
 
     protected static $defaultDescription = 'Run sake commands in the webserver docker container.';
 
-    protected bool $notifyOnCompletion = true;
+    protected static bool $notifyOnCompletion = true;
 
     private ProcessHelper $processHelper;
 
@@ -61,7 +61,9 @@ class Sake extends BaseCommand
             return $failureCode;
         }
 
-        $io->success('Command successfully run in docker container.');
+        if (!$this->isSubCommand) {
+            $io->success('Command successfully run in docker container.');
+        }
         return Command::SUCCESS;
     }
 

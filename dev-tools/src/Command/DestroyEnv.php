@@ -24,7 +24,7 @@ class DestroyEnv extends BaseCommand
 
     protected static $defaultDescription = 'Basically undoes the create-env command.';
 
-    protected bool $notifyOnCompletion = true;
+    protected static bool $notifyOnCompletion = true;
 
     private Filesystem $filesystem;
 

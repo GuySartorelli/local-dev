@@ -14,10 +14,12 @@ abstract class BaseCommand extends Command
 {
     private array $commandVars = [];
 
+    protected bool $isSubCommand = false;
+
     /**
      * If true, notifies when a command has finished.
      */
-    protected bool $notifyOnCompletion = false;
+    protected static bool $notifyOnCompletion = false;
 
     protected const STEP_STYLE = '<fg=blue>';
 
@@ -75,15 +77,15 @@ abstract class BaseCommand extends Command
     public function run(InputInterface $input, OutputInterface $output): int
     {
         $exitCode = parent::run($input, $output);
-        if ($this->notifyOnCompletion) {
+        if (static::$notifyOnCompletion && !$this->isSubCommand) {
             $this->notify($exitCode);
         }
         return $exitCode;
     }
 
-    public function setNotifyOnCompletion(bool $val): self
+    public function setIsSubCommand(bool $value): self
     {
-        $this->notifyOnCompletion = $val;
+        $this->isSubCommand = $value;
         return $this;
     }
 }

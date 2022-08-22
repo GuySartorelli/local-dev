@@ -21,7 +21,7 @@ class Docker extends BaseCommand
 
     protected static $defaultDescription = 'Run commands in the webserver docker container.';
 
-    protected bool $notifyOnCompletion = true;
+    protected static bool $notifyOnCompletion = true;
 
     private ProcessHelper $processHelper;
 
@@ -60,7 +60,9 @@ class Docker extends BaseCommand
             return $failureCode;
         }
 
-        $io->success('Command successfully run in docker container.');
+        if (!$this->isSubCommand) {
+            $io->success('Command successfully run in docker container.');
+        }
         return Command::SUCCESS;
     }
 
