@@ -34,7 +34,6 @@ $application->setDefinition(
 // Add custom commands
 $application->addCommands([
     new Command\CreateEnv(),
-    new Command\CreateEnvForPR(),
     new Command\DestroyEnv(),
     new Command\Docker(),
     new Command\Environment(),

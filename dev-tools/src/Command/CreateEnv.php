@@ -6,6 +6,9 @@ use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use DevTools\Utility\ProcessOutputter;
+use Github\AuthMethod;
+use Github\Client as GithubClient;
+use InvalidArgumentException;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
@@ -60,8 +63,40 @@ class CreateEnv extends BaseCommand
         $this->processHelper = $this->getHelper('process');
         $this->outputter = new ProcessOutputter($output);
         $this->normaliseRecipe();
+        if (str_contains($input->getOption('composer-args') ?? '', '--no-install')) {
+            $this->getVar('io')->warning('Composer --no-install has been set. Cannot checkout PRs.');
+            $this->setVar('prs', []);
+        } else {
+            $this->initializePRDetails($input->getOption('pr'));
+        }
         // Need password to update hosts - get that first so user can walk away while the rest processes.
         $this->setVar('password', $this->getPassword());
+    }
+
+    private function initializePRDetails(array $rawPRs)
+    {
+        if (empty($rawPRs)) {
+            $this->setVar('prs', []);
+            return;
+        }
+        $client = new GithubClient();
+        if ($token = Config::getEnv('DT_GITHUB_TOKEN')) {
+            $client->authenticate($token, AuthMethod::ACCESS_TOKEN);
+        }
+        $prs = [];
+        foreach ($rawPRs as $rawPR) {
+            $parsed = $this->parsePr($rawPR);
+            $prDetails = $client->pullRequest()->show($parsed['org'], $parsed['repo'], $parsed['pr']);
+            $prs[$rawPR] = [
+                'details' => array_merge($parsed, [
+                    'from-org' => $prDetails['head']['user']['login'],
+                    'remote' => $prDetails['head']['repo']['ssh_url'],
+                    'branch' => $prDetails['head']['ref'],
+                ]),
+                'composerName' => $this->getComposerName($client, $parsed),
+            ];
+        }
+        $this->setVar('prs', $prs);
     }
 
     /**
@@ -97,8 +132,14 @@ class CreateEnv extends BaseCommand
             return $failureCode;
         }
 
-        // Prepare webroot
+        // Prepare webroot (includes running composer commands)
         $failureCode = $this->prepareWebRoot();
+        if ($failureCode) {
+            return $failureCode;
+        }
+
+        // Checkout PRs if there are any
+        $failureCode = $this->checkoutPRs();
         if ($failureCode) {
             return $failureCode;
         }
@@ -285,6 +326,67 @@ class CreateEnv extends BaseCommand
         return false;
     }
 
+    protected function checkoutPRs(): int|bool
+    {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        /** @var Environment $environment */
+        $environment = $this->getVar('env');
+        $originalDir = getcwd();
+        $prs = $this->getVar('prs');
+        if (empty($prs)) {
+            return false;
+        }
+
+        $returnVal = false;
+        foreach ($prs as $pr) {
+            $io->writeln(self::STEP_STYLE . 'Setting up PR for ' . $pr['composerName'] . '</>');
+            $details = $pr['details'];
+            $io->writeln(self::STEP_STYLE . 'Setting remote ' . $details['remote'] . ' as "pr" and checking out branch ' . $details['branch'] . '</>');
+            $prPath = Path::join($environment->getWebRoot(), 'vendor', $pr['composerName']);
+            if (!$this->filesystem->exists($prPath)) {
+                // TODO composer require-ing it - and if that fails, toss out a warning about it and move on.
+                $io->warning('Could not check out PR for ' . $pr['composerName'] . ' - please check out that PR manually.');
+                $returnVal = Command::FAILURE;
+                continue;
+            }
+            chdir($prPath);
+            $commands = [
+                // Add all our normal remotes (just in case) and fetch
+                ['git-set-remotes'],
+                // Add the PR remote (if this is a security or creative-commoners PR it will override that remote)
+                [
+                    'git',
+                    'remote',
+                    'add',
+                    'pr',
+                    $details['remote'],
+                ],
+                // Fetch the PR remote
+                [
+                    'git',
+                    'fetch',
+                    'pr',
+                ],
+                // Checkout the PR branch
+                [
+                    'git',
+                    'checkout',
+                    '--track',
+                    'pr/' . $details['branch'],
+                ],
+            ];
+            foreach ($commands as $command) {
+                $io->writeln(self::STEP_STYLE . 'Running command: ' . implode(' ', $command) . '</>');
+                $this->outputter->startCommand();
+                $this->processHelper->run(new NullOutput(), new Process($command), callback: [$this->outputter, 'output']);
+                $this->outputter->endCommand();
+            }
+            chdir($originalDir ?: $environment->getBaseDir());
+        }
+        return $returnVal;
+    }
+
     protected function updateHosts(): int|bool
     {
         /** @var SymfonyStyle $io */
@@ -377,6 +479,26 @@ class CreateEnv extends BaseCommand
     }
 
     /**
+     * Parse a URL or github-shorthand PR reference into an array containing the org, repo, and pr components.
+     */
+    private function parsePr(string $prRaw): array
+    {
+        if (!preg_match('@(?<org>[a-zA-Z0-9_-]*)/(?<repo>[a-zA-Z0-9_-]*)(/pull/|#)(?<pr>[0-9]*)$@', $prRaw, $matches)) {
+            throw new InvalidArgumentException("'$prRaw' is not a valid github PR reference.");
+        }
+        return $matches;
+    }
+
+    /**
+     * Get the composer name of a project from the composer.json of a repo.
+     */
+    private function getComposerName(GithubClient $client, array $pr): string
+    {
+        $composerJson = $client->repo()->contents()->download($pr['org'], $pr['repo'], 'composer.json');
+        return json_decode($composerJson, true)['name'];
+    }
+
+    /**
      * @inheritDoc
      */
     protected function configure(): void
@@ -419,6 +541,17 @@ class CreateEnv extends BaseCommand
             InputOption::VALUE_REQUIRED,
             'The version constraint to use for the installed recipe.',
             Config::getEnv('DT_DEFAULT_INSTALL_VERSION')
+        );
+        $this->addOption(
+            'pr',
+            null,
+            InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+            <<<DESC
+            Optional pull request URL or github referece, e.g. "silverstripe/silverstripe-framework#123" or "https://github.com/silverstripe/silverstripe-framework/pull/123"
+            If included, the command will checkout out the PR branch in the appropriate vendor package.
+            Multiple PRs can be included (for separate modules) by using `--pr` multiple times.
+            DESC,
+            []
         );
         $this->addOption(
             'composer-args',
