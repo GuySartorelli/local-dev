@@ -25,11 +25,16 @@ class PhpConfig extends BaseCommand
 
     private ProcessHelper $processHelper;
 
+    private bool $failedInitialisation = false;
+
     /**
      * @inheritDoc
      */
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
+        if (!$this->isSubCommand && !$input->getOption('quiet')) {
+            $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
+        }
         $hasOne = false;
         foreach (['php-version', 'info', 'toggle-debug'] as $option) {
             if ($input->getOption($option)) {
@@ -37,10 +42,13 @@ class PhpConfig extends BaseCommand
                 break;
             }
         }
-        if (!$hasOne) {
-            throw new RuntimeException('At least one option must be used.');
-        }
         parent::initialize($input, $output);
+        if (!$hasOne) {
+            /** @var SymfonyStyle $io */
+            $io = $this->getVar('io');
+            $io->error('At least one option must be used.');
+            $this->failedInitialisation = true;
+        }
         $this->processHelper = $this->getHelper('process');
     }
 
@@ -49,6 +57,10 @@ class PhpConfig extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if ($this->failedInitialisation) {
+            return Command::INVALID;
+        }
+
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
@@ -89,6 +101,7 @@ class PhpConfig extends BaseCommand
             }
         }
 
+        $io->success("Sucessfully completed command");
         return Command::SUCCESS;
     }
 
@@ -99,11 +112,11 @@ class PhpConfig extends BaseCommand
         $oldVersion = $this->getVersion();
 
         if ($oldVersion === $version) {
-            $io->writeln("Already using version $version - skipping.");
+            $io->writeln(self::STEP_STYLE . "Already using version $version - skipping.</>");
             return false;
         }
 
-        $io->writeln("Swapping PHP from $oldVersion to $version.");
+        $io->writeln(self::STEP_STYLE . "Swapping PHP from $oldVersion to $version.</>");
 
         $command = <<<EOL
         rm /etc/alternatives/php && \\
@@ -116,13 +129,13 @@ class PhpConfig extends BaseCommand
         EOL;
 
         // Run the command
-        return $this->runDockerCommand($command, true, null, true);
+        return $this->runDockerCommand($command, asRoot: true, requiresRestart: true);
     }
 
     protected function getVersion(): string
     {
-        $output = new BufferedOutput(OutputInterface::VERBOSITY_NORMAL);
-        $failure = $this->runDockerCommand('realpath /etc/alternatives/php', false, $output);
+        $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
+        $failure = $this->runDockerCommand('realpath /etc/alternatives/php', output: $output);
         $versionFile = $output->fetch();
         if ($failure || $versionFile === '') {
             throw new RuntimeException('Error fetching PHP version');
@@ -142,9 +155,9 @@ class PhpConfig extends BaseCommand
             $value = ';' . $value;
         }
         $path = $this->getDebugPath($version);
-        $io->writeln("Turning debug $onOff");
+        $io->writeln(self::STEP_STYLE . "Turning debug $onOff</>");
         $command = "echo \"$value\" > \"{$path}\" && /etc/init.d/apache2 reload";
-        return $this->runDockerCommand($command, true);
+        return $this->runDockerCommand($command, asRoot: true);
     }
 
     protected function debugIsEnabled(?string $version = null): bool
@@ -152,7 +165,7 @@ class PhpConfig extends BaseCommand
         $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
         $version ??= $this->getVersion();
         $path = $this->getDebugPath($version);
-        $failure = $this->runDockerCommand("cat {$path}", false, $output);
+        $failure = $this->runDockerCommand("cat {$path}", output: $output);
         if ($failure) {
             throw new RuntimeException('Error fetching debug status');
         }
@@ -167,21 +180,24 @@ class PhpConfig extends BaseCommand
 
     protected function printPhpInfo(): int|bool
     {
-        return $this->runDockerCommand('php -i');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        $io->writeln(self::STEP_STYLE . 'Printing PHP info</>');
+        return $this->runDockerCommand('php -i', output: $this->getVar('output'));
     }
 
     protected function runDockerCommand(string $command, bool $asRoot = false, ?OutputInterface $output = null, bool $requiresRestart = false): int|bool
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $quiet = false;
         if (!$output) {
-            $quiet = true;
-            $output = $this->getVar('output');
+            // $output = $this->getVar('output');
+            $output = clone $this->getVar('output');
+            $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         }
         $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
-        if ($quiet) {
-            $output->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
+        if ($io->getVerbosity() >= OutputInterface::VERBOSITY_VERY_VERBOSE) {
+            $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
         }
 
         $success = $dockerService->exec($command, $asRoot);
@@ -210,7 +226,7 @@ class PhpConfig extends BaseCommand
         $this->setHelp(static::$defaultDescription);
         $this->addOption(
             'php-version',
-            'v',
+            'p',
             InputOption::VALUE_OPTIONAL,
             'Swap to a specific PHP version.',
         );
