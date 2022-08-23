@@ -1,5 +1,9 @@
 # Todo
 
+- Set correct PHP version up front
+  - Allow passing in as an option
+  - Detect from composer.json (or via composer commands) of desired recipe if not passed in
+  - Use composer within docker instead of locally
 - Git commands
   - Set origins (make git-set-remotes a command here instead)
   - Push the current PR branch
