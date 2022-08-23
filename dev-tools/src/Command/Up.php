@@ -140,7 +140,7 @@ class Up extends BaseCommand
 
         // Checkout PRs if there are any
         $this->checkoutPRs();
-        
+
         // Update hosts file
         $this->updateHosts();
 
@@ -148,7 +148,7 @@ class Up extends BaseCommand
         $this->buildDatabase();
 
         $io->success('Completed successfully.');
-        $url = $environment->getBaseURL();
+        $url = $environment->getBaseURL() . '/';
         $io->writeln(self::STEP_STYLE . "Navigate to <href=$url>$url</></>");
         return Command::SUCCESS;
     }

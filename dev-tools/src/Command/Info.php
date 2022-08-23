@@ -40,7 +40,7 @@ class Info extends BaseCommand
             'DB Port',
             'Web IP',
         ], [[
-            "<href={$env->getBaseURL()}>{$env->getBaseURL()}</>",
+            "<href={$env->getBaseURL()}/>{$env->getBaseURL()}/</>",
             "<href={$env->getBaseURL()}:8025>{$env->getBaseURL()}:8025</>",
             "33{$env->getSuffix()}",
             "{$env->getIpAddress()}",
