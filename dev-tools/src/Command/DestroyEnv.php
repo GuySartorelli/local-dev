@@ -57,6 +57,12 @@ class DestroyEnv extends BaseCommand
             return Command::INVALID;
         }
 
+        // Make sure we're not _in_ the environment dir when we destroy it.
+        if (Path::isBasePath($environment->getBaseDir(), getcwd())) {
+            $projectsDir = Path::join($environment->getBaseDir(), '../');
+            chdir($projectsDir);
+        }
+
         // Pull down docker
         $failureCode = $this->pullDownDocker();
         if ($failureCode) {
