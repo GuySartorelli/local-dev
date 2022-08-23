@@ -33,12 +33,18 @@ class Environment extends BaseCommand
         }
 
         // TODO fetch whether docker containers are running
-        $io->write([
-            "URL: <href={$env->getBaseURL()}>{$env->getBaseURL()}</>",
-            "Mailhog: <href={$env->getBaseURL()}:8025>{$env->getBaseURL()}:8025</>",
-            "DB Port: 33{$env->getSuffix()}",
-            "Web IP: {$env->getIpAddress()}",
-        ], true);
+        // TODO add php info here as well (debug status, php version)
+        $io->horizontalTable([
+            'URL',
+            'Mailhog',
+            'DB Port',
+            'Web IP',
+        ], [[
+            "<href={$env->getBaseURL()}>{$env->getBaseURL()}</>",
+            "<href={$env->getBaseURL()}:8025>{$env->getBaseURL()}:8025</>",
+            "33{$env->getSuffix()}",
+            "{$env->getIpAddress()}",
+        ]]);
 
         return Command::SUCCESS;
     }
