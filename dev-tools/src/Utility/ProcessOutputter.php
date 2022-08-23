@@ -20,7 +20,7 @@ class ProcessOutputter
 
     public function output(string $type, string $buffer): void
     {
-        if ($this->output->getVerbosity() < OutputInterface::VERBOSITY_VERBOSE) {
+        if (!$this->output->isVerbose()) {
             $this->progressBar->advance();
         } else {
             $this->output->write($buffer);
@@ -29,7 +29,7 @@ class ProcessOutputter
 
     public function startCommand(): void
     {
-        if ($this->output->getVerbosity() < OutputInterface::VERBOSITY_VERBOSE) {
+        if (!$this->output->isVerbose()) {
             if (!$this->output instanceof SymfonyStyle) {
                 $this->output = new SymfonyStyle(new ArrayInput([]), $this->output);
             }
@@ -41,7 +41,7 @@ class ProcessOutputter
 
     public function endCommand(): void
     {
-        if ($this->output->getVerbosity() < OutputInterface::VERBOSITY_VERBOSE) {
+        if (!$this->output->isVerbose()) {
             $this->progressBar->finish();
             $this->progressBar->clear();
             $this->progressBar = null;

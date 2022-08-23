@@ -196,7 +196,7 @@ class PhpConfig extends BaseCommand
             $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         }
         $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
-        if ($io->getVerbosity() >= OutputInterface::VERBOSITY_VERY_VERBOSE) {
+        if ($io->isVeryVerbose()) {
             $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
         }
 
