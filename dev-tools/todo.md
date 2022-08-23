@@ -7,7 +7,6 @@
     - Checks for correct naming convention
     - Pushes to creative-commoners by default
 - Finish up todos in codebase
-- Update README
 - Set up a meta web server
   - basic page showing available projects with some basic info (url, mailhog, php version, etc)
   - phpmyadmin or similar to manage db
