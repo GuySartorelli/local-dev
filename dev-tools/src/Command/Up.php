@@ -139,16 +139,10 @@ class Up extends BaseCommand
         }
 
         // Checkout PRs if there are any
-        $failureCode = $this->checkoutPRs();
-        if ($failureCode) {
-            return $failureCode;
-        }
-
+        $this->checkoutPRs();
+        
         // Update hosts file
-        $failureCode = $this->updateHosts();
-        if ($failureCode) {
-            return $failureCode;
-        }
+        $this->updateHosts();
 
         // Run dev/build
         $this->buildDatabase();
