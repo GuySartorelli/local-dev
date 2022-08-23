@@ -33,10 +33,10 @@ $application->setDefinition(
 
 // Add custom commands
 $application->addCommands([
-    new Command\CreateEnv(),
-    new Command\DestroyEnv(),
+    new Command\Up(),
+    new Command\Down(),
     new Command\Docker(),
-    new Command\Environment(),
+    new Command\Info(),
     new Command\PhpConfig(),
     new Command\Sake(),
     new Command\Behat(),

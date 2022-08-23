@@ -2,7 +2,7 @@
 
 namespace DevTools\Command;
 
-use DevTools\Utility\Environment as Env;
+use DevTools\Utility\Environment;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -11,7 +11,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Path;
 
-class Environment extends BaseCommand
+class Info extends BaseCommand
 {
     protected static $defaultName = 'info';
 
@@ -26,7 +26,7 @@ class Environment extends BaseCommand
         $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
         try {
-            $env = new Env($proposedPath);
+            $env = new Environment($proposedPath);
         } catch (LogicException $e) {
             $io->error($e->getMessage());
             return Command::INVALID;

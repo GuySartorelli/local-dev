@@ -16,13 +16,13 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
-class DestroyEnv extends BaseCommand
+class Down extends BaseCommand
 {
     use UsesPassword;
 
     protected static $defaultName = 'down';
 
-    protected static $defaultDescription = 'Basically undoes the create-env command.';
+    protected static $defaultDescription = 'Completely tears down an environment that was created with the "up" command.';
 
     protected static bool $notifyOnCompletion = true;
 
