@@ -6,6 +6,8 @@
   - Use composer within docker instead of locally
 - Git commands
   - Set origins (make git-set-remotes a command here instead)
+  - Create me a new PR branch
+    - "pulls/$CURRENT_BRANCH/$DESCRIPTION"
   - Push the current PR branch
     - Runs phpcs linting
     - Checks for correct naming convention
