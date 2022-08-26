@@ -1,5 +1,7 @@
 # Todo
 
+- If a PR is for a version we're not currently installing, panic.
+  - e.g. interactive "the PR you want is for x.y, but you're installing a.b. Continue installing? Your PR won't be checked out, you'll have to do that manually."
 - Git commands
   - Set origins (make git-set-remotes a command here instead)
   - Create me a new PR branch
