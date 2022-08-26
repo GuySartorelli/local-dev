@@ -402,10 +402,14 @@ class Up extends BaseCommand
             $io->writeln(self::STEP_STYLE . 'Setting remote ' . $details['remote'] . ' as "pr" and checking out branch ' . $details['branch'] . '</>');
             $prPath = Path::join($environment->getWebRoot(), 'vendor', $pr['composerName']);
             if (!$this->filesystem->exists($prPath)) {
-                // TODO composer require-ing it - and if that fails, toss out a warning about it and move on.
-                $io->warning('Could not check out PR for ' . $pr['composerName'] . ' - please check out that PR manually.');
-                $returnVal = Command::FAILURE;
-                continue;
+                // Try composer require-ing it - and if that fails, toss out a warning about it and move on.
+                $io->writeln(self::STEP_STYLE . $pr['composerName'] . ' is not yet added as a dependency - requiring it.</>');
+                $result = $this->runDockerCommand('composer require ' . $pr['composerName'], $this->getVar('output'));
+                if ($result) {
+                    $io->warning('Could not check out PR for ' . $pr['composerName'] . ' - please check out that PR manually.');
+                    $returnVal = Command::FAILURE;
+                    continue;
+                }
             }
             chdir($prPath);
             $commands = [
