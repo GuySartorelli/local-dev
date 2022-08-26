@@ -2,6 +2,8 @@
 
 namespace DevTools\Command;
 
+use Composer\Semver\Semver;
+use Composer\Semver\VersionParser;
 use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
@@ -16,6 +18,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -216,6 +219,7 @@ class Up extends BaseCommand
         $environment = $this->getVar('env');
         $webDir = $environment->getWebRoot();
 
+        $this->setPHPVersion();
         $failureCode = $this->buildComposerProject();
         if ($failureCode) {
             return $failureCode;
@@ -243,13 +247,75 @@ class Up extends BaseCommand
         return false;
     }
 
+    protected function setPHPVersion()
+    {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        /** @var InputInterface $input */
+        $input = $this->getVar('input');
+        $io->writeln(self::STEP_STYLE . 'Setting appropriate PHP version.</>');
+
+        // Get the php version for the selected recipe and version
+        $command = "composer show -a -f json {$input->getOption('recipe')} {$input->getOption('constraint')}";
+        $dockerReturn = $this->runDockerCommand($command);
+        if ($dockerReturn === Command::FAILURE) {
+            $io->warning('Could not find PHP version');
+            return;
+        }
+        // Rip out any composer nonsense before the JSON actually starts, then parse
+        $composerJson = json_decode(preg_replace('/^[^{]*/', '', $dockerReturn), true);
+        if (!isset($composerJson['requires']['php'])) {
+            $io->warning('Could not find PHP version');
+            return;
+        }
+
+        // Try each installed PHP version against the allowed versions
+        /** @var Environment $environment */
+        $environment = $this->getVar('env');
+        foreach (explode(',', Config::getEnv('DT_PHP_VERSIONS')) as $phpVersion) {
+            if (Semver::satisfies($phpVersion, $composerJson['requires']['php'])) {
+                /** @var BaseCommand $phpConfig */
+                $phpConfig = $this->getApplication()->find('php');
+                $phpConfig->setIsSubCommand(true);
+                $args = [
+                    '--php-version' => $phpVersion,
+                    'env-path' => $environment->getBaseDir(),
+                ];
+                $phpConfigReturn = $phpConfig->run(new ArrayInput($args), $this->getVar('output'));
+                // If we were successful, we're done. The phpconfig command will have output a success message.
+                if ($phpConfigReturn === Command::SUCCESS) {
+                    return;
+                }
+            }
+        }
+
+        $io->warning('Could not set PHP version');
+    }
+
+    protected function runDockerCommand(string $command, $output = null): string|int|bool
+    {
+        // TODO probably pull this into basecommand
+        if (!$output) {
+            $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
+        }
+        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
+
+        $success = $dockerService->exec($command);
+        if (!$success) {
+            return Command::FAILURE;
+        }
+
+        if ($output instanceof BufferedOutput) {
+            return $output->fetch();
+        }
+        return false;
+    }
+
     protected function buildComposerProject(): int|bool
     {
         $input = $this->getVar('input');
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        /** @var Environment $environment */
-        $environment = $this->getVar('env');
         $io->writeln(self::STEP_STYLE . 'Building composer project</>');
 
         // Prepare composer command
@@ -263,20 +329,17 @@ class Up extends BaseCommand
         $composerCommand = [
             'composer',
             'create-project',
+            '--no-audit',
             $input->getOption('recipe') . ':' . $input->getOption('constraint'),
-            $environment->getWebRoot(),
+            './',
             ...$composerArgs,
         ];
 
         // Run composer command
-        $process = new Process($composerCommand);
-        $process->setTimeout(null);
-        $this->outputter->startCommand();
-        $result = $this->processHelper->run(new NullOutput(), $process, callback: [$this->outputter, 'output']);
-        $this->outputter->endCommand();
-        if (!$result->isSuccessful()) {
+        $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'));
+        if ($result === Command::FAILURE) {
             $io->error('Couldn\'t create composer project.');
-            return Command::FAILURE;
+            return $result;
         }
 
         return false;

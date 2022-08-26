@@ -102,7 +102,9 @@ class PhpConfig extends BaseCommand
             }
         }
 
-        $io->success("Sucessfully completed command");
+        if (!$this->isSubCommand) {
+            $io->success("Sucessfully completed command");
+        }
         return Command::SUCCESS;
     }
 
