@@ -254,42 +254,65 @@ class Up extends BaseCommand
         /** @var InputInterface $input */
         $input = $this->getVar('input');
         $io->writeln(self::STEP_STYLE . 'Setting appropriate PHP version.</>');
+        if ($phpVersion = $input->getOption('php-version')) {
+            if (in_array($phpVersion, explode(',', Config::getEnv('DT_PHP_VERSIONS')))) {
+                $this->usePHPVersion($phpVersion);
+            } else {
+                $io->warning("PHP $phpVersion is not available. Using default.");
+            }
+            return;
+        }
 
         // Get the php version for the selected recipe and version
-        $command = "composer show -a -f json {$input->getOption('recipe')} {$input->getOption('constraint')}";
+        $recipe = $input->getOption('recipe');
+        $command = "composer show -a -f json {$recipe} {$input->getOption('constraint')}";
         $dockerReturn = $this->runDockerCommand($command);
         if ($dockerReturn === Command::FAILURE) {
-            $io->warning('Could not find PHP version');
+            $io->warning('Could not fetch PHP version from composer. Using default.');
             return;
         }
         // Rip out any composer nonsense before the JSON actually starts, then parse
         $composerJson = json_decode(preg_replace('/^[^{]*/', '', $dockerReturn), true);
         if (!isset($composerJson['requires']['php'])) {
-            $io->warning('Could not find PHP version');
+            $io->warning("$recipe doesn't have an explicit PHP dependency to check against. Using default.");
             return;
+        }
+        $constraint = $composerJson['requires']['php'];
+        if ($io->isVerbose()) {
+            $io->writeln("Constraint for PHP is $constraint.");
         }
 
         // Try each installed PHP version against the allowed versions
-        /** @var Environment $environment */
-        $environment = $this->getVar('env');
         foreach (explode(',', Config::getEnv('DT_PHP_VERSIONS')) as $phpVersion) {
-            if (Semver::satisfies($phpVersion, $composerJson['requires']['php'])) {
-                /** @var BaseCommand $phpConfig */
-                $phpConfig = $this->getApplication()->find('php');
-                $phpConfig->setIsSubCommand(true);
-                $args = [
-                    '--php-version' => $phpVersion,
-                    'env-path' => $environment->getBaseDir(),
-                ];
-                $phpConfigReturn = $phpConfig->run(new ArrayInput($args), $this->getVar('output'));
-                // If we were successful, we're done. The phpconfig command will have output a success message.
-                if ($phpConfigReturn === Command::SUCCESS) {
-                    return;
+            if (!Semver::satisfies($phpVersion, $constraint)) {
+                if ($io->isVerbose()) {
+                    $io->writeln("PHP $phpVersion doesn't satisfy the constraint. Skipping.");
                 }
+                continue;
             }
+            $this->usePHPVersion($phpVersion);
+            return;
         }
 
-        $io->warning('Could not set PHP version');
+        $io->warning('Could not set PHP version. Using default.');
+    }
+
+    /**
+     * Swap to a specific PHP version.
+     * Note that because this restarts apache it sometimes results in the docker container exiting with non-0
+     */
+    private function usePHPVersion(string $phpVersion): int
+    {
+        /** @var Environment $environment */
+        $environment = $this->getVar('env');
+        /** @var BaseCommand $phpConfig */
+        $phpConfig = $this->getApplication()->find('php');
+        $phpConfig->setIsSubCommand(true);
+        $args = [
+            '--php-version' => $phpVersion,
+            'env-path' => $environment->getBaseDir(),
+        ];
+        return $phpConfig->run(new ArrayInput($args), $this->getVar('output'));
     }
 
     protected function runDockerCommand(string $command, $output = null): string|int|bool
@@ -602,6 +625,12 @@ class Up extends BaseCommand
             InputOption::VALUE_REQUIRED,
             'The version constraint to use for the installed recipe.',
             Config::getEnv('DT_DEFAULT_INSTALL_VERSION')
+        );
+        $this->addOption(
+            'php-version',
+            'P',
+            InputOption::VALUE_OPTIONAL,
+            'The PHP version to use for this environment. Uses the lowest allowed version by default.'
         );
         $this->addOption(
             'pr',

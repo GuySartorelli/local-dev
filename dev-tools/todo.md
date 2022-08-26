@@ -1,6 +1,5 @@
 # Todo
 
-- Allow passing in as an option for Up command
 - Git commands
   - Set origins (make git-set-remotes a command here instead)
   - Create me a new PR branch
