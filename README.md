@@ -11,3 +11,8 @@
 
 - Use `git-set-remotes` to automatically add remotes for silverstripe forks.
   This will probably eventually be replaced with a dev-tools command.
+
+## Development
+
+### PHP Versions
+When adding new PHP versions, don't forget to update the list in .env.example and .env

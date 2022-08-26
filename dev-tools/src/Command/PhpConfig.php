@@ -2,6 +2,7 @@
 
 namespace DevTools\Command;
 
+use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use LogicException;
@@ -109,6 +110,13 @@ class PhpConfig extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
+        $versions = explode(',', Config::getEnv('DT_PHP_VERSIONS'));
+
+        if (!in_array($version, $versions)) {
+            $io->error("PHP $version is not available.");
+            return Command::INVALID;
+        }
+
         $oldVersion = $this->getVersion();
 
         if ($oldVersion === $version) {
