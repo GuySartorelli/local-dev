@@ -75,7 +75,9 @@ class Sake extends BaseCommand
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
         $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $io);
-        $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
+        if (!$this->isSubCommand || $io->isVerbose()) {
+            $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
+        }
 
         $success = $dockerService->exec($command);
         if (!$success) {
