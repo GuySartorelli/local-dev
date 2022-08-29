@@ -374,7 +374,6 @@ class Up extends BaseCommand
         $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
-        $io->writeln(self::STEP_STYLE . 'Spinning up docker</>');
 
         try {
             // Setup docker files
@@ -396,6 +395,7 @@ class Up extends BaseCommand
             return Command::FAILURE;
         }
 
+        $io->writeln(self::STEP_STYLE . 'Spinning up docker</>');
         $dockerService = new DockerService($environment, $this->processHelper, $io);
         $success = $dockerService->up();
         if (!$success) {
