@@ -76,7 +76,7 @@ class Docker extends BaseCommand
         $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $io);
         $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
 
-        $success = $dockerService->exec($command);
+        $success = $dockerService->exec($command, $asRoot);
         if (!$success) {
             $io->error('Problem occured while running command in docker container.');
             return Command::FAILURE;
