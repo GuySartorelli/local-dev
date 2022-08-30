@@ -30,12 +30,12 @@ class PHPService
      */
     public function getVersion(): string
     {
-        $failure = $this->runDockerCommand('realpath /etc/alternatives/php');
-        $versionFile = $this->dockerOutput->fetch();
-        if ($failure || $versionFile === '') {
-            throw new RuntimeException('Error fetching PHP version');
+        $failure = $this->runDockerCommand('echo $(php -r "echo PHP_MAJOR_VERSION . \'.\' . PHP_MINOR_VERSION;")');
+        $version = trim($this->dockerOutput->fetch());
+        if ($failure || $version === '') {
+            throw new RuntimeException("Error fetching PHP version: $version");
         }
-        return trim(str_replace('/usr/bin/php', '', $versionFile));
+        return $version;
     }
 
     /**
