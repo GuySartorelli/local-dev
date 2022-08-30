@@ -32,7 +32,7 @@ class PHPService
     {
         $failure = $this->runDockerCommand('echo $(php -r "echo PHP_MAJOR_VERSION . \'.\' . PHP_MINOR_VERSION;")');
         $version = trim($this->dockerOutput->fetch());
-        if ($failure || $version === '') {
+        if ($failure || !preg_match('/\d+\.\d+/', $version)) {
             throw new RuntimeException("Error fetching PHP version: $version");
         }
         return $version;
