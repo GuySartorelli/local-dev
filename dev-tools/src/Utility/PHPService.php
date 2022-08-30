@@ -46,10 +46,10 @@ class PHPService
         $version ??= $this->getVersion();
         $path = $this->getDebugPath($version);
         $failure = $this->runDockerCommand("cat {$path}");
+        $debug = trim($this->dockerOutput->fetch());
         if ($failure) {
-            throw new RuntimeException('Error fetching debug status');
+            throw new RuntimeException("Error fetching debug status: $debug");
         }
-        $debug = $this->dockerOutput->fetch();
         return $debug !== '' && !str_starts_with($debug, ';');
     }
 
