@@ -7,7 +7,6 @@ use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -28,8 +27,6 @@ class Down extends BaseCommand
 
     private Filesystem $filesystem;
 
-    private ProcessHelper $processHelper;
-
     /**
      * @inheritDoc
      */
@@ -37,7 +34,6 @@ class Down extends BaseCommand
     {
         parent::initialize($input, $output);
         $this->filesystem = new Filesystem();
-        $this->processHelper = $this->getHelper('process');
         // Need password to update hosts - get that first so user can walk away while the rest processes.
         $this->setVar('password', $this->getPassword());
     }
@@ -96,7 +92,7 @@ class Down extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $io);
+        $dockerService = new DockerService($this->getVar('env'), $io);
         $io->writeln(self::STEP_STYLE . 'Taking down docker</>');
 
         $success = $dockerService->down();

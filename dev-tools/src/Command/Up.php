@@ -321,7 +321,7 @@ class Up extends BaseCommand
         if (!$output) {
             $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
         }
-        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
+        $dockerService = new DockerService($this->getVar('env'), $output);
 
         $success = $dockerService->exec($command);
         if (!$success) {
@@ -396,7 +396,7 @@ class Up extends BaseCommand
         }
 
         $io->writeln(self::STEP_STYLE . 'Spinning up docker</>');
-        $dockerService = new DockerService($environment, $this->processHelper, $io);
+        $dockerService = new DockerService($environment, $io);
         $success = $dockerService->up();
         if (!$success) {
             $io->error('Couldn\'t start docker containers.');

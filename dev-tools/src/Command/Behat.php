@@ -7,7 +7,6 @@ use DevTools\Utility\Environment;
 use LogicException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -24,8 +23,6 @@ class Behat extends BaseCommand
 
     protected static bool $notifyOnCompletion = true;
 
-    private ProcessHelper $processHelper;
-
     /**
      * @inheritDoc
      */
@@ -38,7 +35,6 @@ class Behat extends BaseCommand
             throw new RuntimeException('"modules" argument must not be empty.');
         }
         parent::initialize($input, $output);
-        $this->processHelper = $this->getHelper('process');
     }
 
     /**
@@ -90,7 +86,7 @@ class Behat extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $io);
+        $dockerService = new DockerService($this->getVar('env'), $io);
         $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
 
         $success = $dockerService->exec($command);

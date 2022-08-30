@@ -3,6 +3,8 @@
 namespace DevTools\Utility;
 
 use InvalidArgumentException;
+use Symfony\Component\Console\Helper\DebugFormatterHelper;
+use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -16,10 +18,11 @@ final class DockerService
 
     private ?ProcessOutputter $outputter;
 
-    public function __construct(Environment $environment, ?ProcessHelper $processHelper = null, ?OutputInterface $output = null)
+    public function __construct(Environment $environment, ?OutputInterface $output = null)
     {
         $this->environment = $environment;
-        $this->processHelper = $processHelper;
+        $this->processHelper = new ProcessHelper();
+        $this->processHelper->setHelperSet(new HelperSet([new DebugFormatterHelper()]));
         $this->outputter = new ProcessOutputter($output);
     }
 
@@ -92,7 +95,7 @@ final class DockerService
     {
         $process = new Process($command);
         $process->setTimeout(null);
-        if ($this->processHelper && $this->outputter) {
+        if ($this->outputter) {
             $this->outputter->startCommand();
             $process = $this->processHelper->run(new NullOutput(), $process, callback: [$this->outputter, 'output']);
             $this->outputter->endCommand();
