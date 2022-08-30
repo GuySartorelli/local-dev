@@ -15,4 +15,7 @@
 - Set up a meta web server
   - basic page showing available projects with some basic info (url, mailhog, php version, etc)
   - phpmyadmin or similar to manage db
+- Stop relying on 000-default.conf
+  - Have a new placeholder 000-default.conf which just outputs some "this is the default page" message
+  - Update what is current docker_apache_default to be a specific virtualhost for the specific site
 - ??
