@@ -2,16 +2,19 @@
 
 namespace DevTools\Command;
 
-use DevTools\Utility\Config;
 use DevTools\Utility\Environment;
 use DevTools\Utility\PHPService;
+use DevTools\Utility\ProcessOutputter;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Process\Process;
 
 class Info extends BaseCommand
 {
@@ -28,14 +31,15 @@ class Info extends BaseCommand
         $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
         try {
-            $env = new Environment($proposedPath);
+            $this->setVar('env', $env = new Environment($proposedPath));
         } catch (LogicException $e) {
             $io->error($e->getMessage());
             return Command::INVALID;
         }
 
-        // TODO fetch whether docker containers are running - likely by parsing "docker compose ps"
         $phpService = new PHPService($env, $this->getVar('output'));
+        $containers = $this->getContainersStatus();
+
         $io->horizontalTable([
             'URL',
             'Mailhog',
@@ -44,6 +48,7 @@ class Info extends BaseCommand
             'XDebug',
             'PHP Version',
             'Available PHP Versions',
+            ...array_keys($containers),
         ], [[
             "<href={$env->getBaseURL()}/>{$env->getBaseURL()}/</>",
             "<href={$env->getBaseURL()}:8025>{$env->getBaseURL()}:8025</>",
@@ -52,9 +57,45 @@ class Info extends BaseCommand
             $phpService->debugIsEnabled() ? 'On' : 'Off',
             $phpService->getVersion(),
             implode(', ', PHPService::getAvailableVersions()),
+            ...array_values($containers),
         ]]);
 
         return Command::SUCCESS;
+    }
+
+    private function getContainersStatus()
+    {
+        /** @var Environment $env */
+        $env = $this->getVar('env');
+        /** @var ProcessHelper $processHelper */
+        $processHelper = $this->getHelper('process');
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
+        $cmd = [
+            'docker',
+            'compose',
+            'ps',
+            '--all',
+            '--format=json',
+        ];
+        $outputFormatter = new ProcessOutputter($output);
+        $process = $processHelper->run(
+            $output,
+            new Process($cmd, $env->getDockerDir()),
+            callback: [$outputFormatter, 'output']
+        );
+        if (!$process->isSuccessful()) {
+            $io->warning("Couldn't get status of docker containers.");
+            return null;
+        }
+
+        $containers = [];
+        foreach (json_decode($output->fetch(), true) as $container) {
+            $name = str_replace($env->getName() . '_', '', $container['Name']) . ' container';
+            $containers[$name] = $container['State'];
+        }
+        return $containers;
     }
 
     /**
