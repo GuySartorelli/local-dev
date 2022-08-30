@@ -2,7 +2,9 @@
 
 namespace DevTools\Command;
 
+use DevTools\Utility\Config;
 use DevTools\Utility\Environment;
+use DevTools\Utility\PHPService;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -32,18 +34,24 @@ class Info extends BaseCommand
             return Command::INVALID;
         }
 
-        // TODO fetch whether docker containers are running
-        // TODO add php info here as well (debug status, php version)
+        // TODO fetch whether docker containers are running - likely by parsing "docker compose ps"
+        $phpService = new PHPService($env, $this->getVar('output'));
         $io->horizontalTable([
             'URL',
             'Mailhog',
             'DB Port',
             'Web IP',
+            'XDebug',
+            'PHP Version',
+            'Available PHP Versions',
         ], [[
             "<href={$env->getBaseURL()}/>{$env->getBaseURL()}/</>",
             "<href={$env->getBaseURL()}:8025>{$env->getBaseURL()}:8025</>",
             "33{$env->getSuffix()}",
             "{$env->getIpAddress()}",
+            $phpService->debugIsEnabled() ? 'On' : 'Off',
+            $phpService->getVersion(),
+            implode(', ', PHPService::getAvailableVersions()),
         ]]);
 
         return Command::SUCCESS;

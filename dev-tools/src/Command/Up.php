@@ -7,6 +7,7 @@ use Composer\Semver\VersionParser;
 use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
+use DevTools\Utility\PHPService;
 use DevTools\Utility\ProcessOutputter;
 use Github\AuthMethod;
 use Github\Client as GithubClient;
@@ -255,7 +256,7 @@ class Up extends BaseCommand
         $input = $this->getVar('input');
         $io->writeln(self::STEP_STYLE . 'Setting appropriate PHP version.</>');
         if ($phpVersion = $input->getOption('php-version')) {
-            if (in_array($phpVersion, explode(',', Config::getEnv('DT_PHP_VERSIONS')))) {
+            if (PHPService::versionIsAvailable($phpVersion)) {
                 $this->usePHPVersion($phpVersion);
             } else {
                 $io->warning("PHP $phpVersion is not available. Using default.");
@@ -283,7 +284,7 @@ class Up extends BaseCommand
         }
 
         // Try each installed PHP version against the allowed versions
-        foreach (explode(',', Config::getEnv('DT_PHP_VERSIONS')) as $phpVersion) {
+        foreach (PHPService::getAvailableVersions() as $phpVersion) {
             if (!Semver::satisfies($phpVersion, $constraint)) {
                 if ($io->isVerbose()) {
                     $io->writeln("PHP $phpVersion doesn't satisfy the constraint. Skipping.");

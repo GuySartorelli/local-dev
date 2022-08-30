@@ -2,17 +2,14 @@
 
 namespace DevTools\Command;
 
-use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
+use DevTools\Utility\PHPService;
 use LogicException;
-use RuntimeException;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Path;
@@ -23,8 +20,6 @@ class PhpConfig extends BaseCommand
     protected static $defaultName = 'php';
 
     protected static $defaultDescription = 'Make changes to PHP config (e.g. change php version, toggle xdebug).';
-
-    private ProcessHelper $processHelper;
 
     private bool $failedInitialisation = false;
 
@@ -50,7 +45,6 @@ class PhpConfig extends BaseCommand
             $io->error('At least one option must be used.');
             $this->failedInitialisation = true;
         }
-        $this->processHelper = $this->getHelper('process');
     }
 
     /**
@@ -66,32 +60,24 @@ class PhpConfig extends BaseCommand
         $io = $this->getVar('io');
         $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
         try {
-            $this->setVar('env', new Environment($proposedPath));
+            $this->setVar('env', $env = new Environment($proposedPath));
         } catch (LogicException $e) {
             $io->error($e->getMessage());
             return Command::INVALID;
         }
+        $this->setVar('phpService', new PHPService($env, $this->getVar('output')));
 
         if ($phpVersion = $input->getOption('php-version')) {
-            if ($input->getOption('values-only')) {
-                $io->info('PHP version is ' . $this->getVersion());
-            } else {
-                $failureCode = $this->swapToVersion($phpVersion);
-                if ($failureCode) {
-                    return $failureCode;
-                }
+            $failureCode = $this->swapToVersion($phpVersion);
+            if ($failureCode) {
+                return $failureCode;
             }
         }
 
         if ($input->getOption('toggle-debug')) {
-            if ($input->getOption('values-only')) {
-                $onoff = $this->debugIsEnabled() ? 'on' : 'off';
-                $io->info('Debug is ' . $onoff);
-            } else {
-                $failureCode = $this->toggleDebug();
-                if ($failureCode) {
-                    return $failureCode;
-                }
+            $failureCode = $this->toggleDebug();
+            if ($failureCode) {
+                return $failureCode;
             }
         }
 
@@ -112,14 +98,15 @@ class PhpConfig extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $versions = explode(',', Config::getEnv('DT_PHP_VERSIONS'));
+        /** @var PHPService $phpService */
+        $phpService = $this->getVar('phpService');
 
-        if (!in_array($version, $versions)) {
+        if (!PHPService::versionIsAvailable($version)) {
             $io->error("PHP $version is not available.");
             return Command::INVALID;
         }
 
-        $oldVersion = $this->getVersion();
+        $oldVersion = $phpService->getVersion();
 
         if ($oldVersion === $version) {
             $io->writeln(self::STEP_STYLE . "Already using version $version - skipping.</>");
@@ -142,50 +129,23 @@ class PhpConfig extends BaseCommand
         return $this->runDockerCommand($command, asRoot: true, requiresRestart: true);
     }
 
-    protected function getVersion(): string
-    {
-        $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
-        $failure = $this->runDockerCommand('realpath /etc/alternatives/php', output: $output);
-        $versionFile = $output->fetch();
-        if ($failure || $versionFile === '') {
-            throw new RuntimeException('Error fetching PHP version');
-        }
-        return trim(str_replace('/usr/bin/php', '', $versionFile));
-    }
-
     protected function toggleDebug(): int|bool
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
+        /** @var PHPService $phpService */
+        $phpService = $this->getVar('phpService');
         $value = 'zend_extension=xdebug.so';
-        $version = $this->getVersion();
+        $version = $phpService->getVersion();
         $onOff = 'on';
-        if ($this->debugIsEnabled($version)) {
+        if ($phpService->debugIsEnabled($version)) {
             $onOff = 'off';
             $value = ';' . $value;
         }
-        $path = $this->getDebugPath($version);
+        $path = $phpService->getDebugPath($version);
         $io->writeln(self::STEP_STYLE . "Turning debug $onOff</>");
         $command = "echo \"$value\" > \"{$path}\" && /etc/init.d/apache2 reload";
         return $this->runDockerCommand($command, asRoot: true);
-    }
-
-    protected function debugIsEnabled(?string $version = null): bool
-    {
-        $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
-        $version ??= $this->getVersion();
-        $path = $this->getDebugPath($version);
-        $failure = $this->runDockerCommand("cat {$path}", output: $output);
-        if ($failure) {
-            throw new RuntimeException('Error fetching debug status');
-        }
-        $debug = $output->fetch();
-        return $debug !== '' && !str_starts_with($debug, ';');
-    }
-
-    protected function getDebugPath(string $phpVersion): string
-    {
-        return "/etc/php/{$phpVersion}/mods-available/xdebug.ini";
     }
 
     protected function printPhpInfo(): int|bool
@@ -205,7 +165,7 @@ class PhpConfig extends BaseCommand
             $output = clone $this->getVar('output');
             $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         }
-        $dockerService = new DockerService($this->getVar('env'), $this->processHelper, $output);
+        $dockerService = new DockerService($this->getVar('env'), $output);
         if ($io->isVeryVerbose()) {
             $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
         }
@@ -251,12 +211,6 @@ class PhpConfig extends BaseCommand
             'i',
             InputOption::VALUE_NONE,
             'Print out phpinfo (for webserver - assumed same for cli).',
-        );
-        $this->addOption(
-            'values-only',
-            'o',
-            InputOption::VALUE_NONE,
-            'Make no changes - only print out current values.',
         );
         $this->addArgument(
             'env-path',
