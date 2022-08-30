@@ -21,7 +21,7 @@ abstract class BaseCommand extends Command
      */
     protected static bool $notifyOnCompletion = false;
 
-    protected const STEP_STYLE = '<fg=blue>';
+    public const STEP_STYLE = '<fg=blue>';
 
     /**
      * @inheritDoc
