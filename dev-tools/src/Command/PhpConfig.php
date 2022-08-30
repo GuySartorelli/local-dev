@@ -196,7 +196,7 @@ class PhpConfig extends BaseCommand
         $this->setHelp(static::$defaultDescription);
         $this->addOption(
             'php-version',
-            'p',
+            'P',
             InputOption::VALUE_OPTIONAL,
             'Swap to a specific PHP version.',
         );
