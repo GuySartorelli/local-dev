@@ -54,7 +54,12 @@ class Docker extends BaseCommand
         $command = $input->getArgument('exec');
 
         // Run the command
-        $failureCode = $this->runDockerCommand(implode(' ', $command), $this->getVar('output'), $input->getOption('as-root'));
+        $failureCode = $this->runDockerCommand(
+            implode(' ', $command),
+            $this->getVar('output'),
+            $input->getOption('as-root'),
+            interactive: $input->getOption('interactive')
+        );
         if ($failureCode) {
             return $failureCode;
         }
@@ -92,6 +97,13 @@ class Docker extends BaseCommand
             'r',
             InputOption::VALUE_NEGATABLE,
             'Whether to run the command as the root user.',
+            false
+        );
+        $this->addOption(
+            'interactive',
+            'i',
+            InputOption::VALUE_NEGATABLE,
+            'Whether the docker command should be interactive.',
             false
         );
     }

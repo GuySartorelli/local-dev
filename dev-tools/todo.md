@@ -10,7 +10,6 @@
     - Runs phpcs linting
     - Checks for correct naming convention
     - Pushes to creative-commoners by default
-- Find a way to allow interactive docker commands (i.e. use -it instead of just -t and pass input through)
 - Finish up todos in codebase
 - Set up a meta web server
   - basic page showing available projects with some basic info (url, mailhog, php version, etc)

@@ -69,7 +69,7 @@ final class DockerService
      * Run some command in the webserver docker container - optionally as root.
      * @throws InvalidArgumentException
      */
-    public function exec(string $exec, bool $asRoot = false): bool
+    public function exec(string $exec, bool $asRoot = false, bool $interactive = false): bool
     {
         if (empty($exec)) {
             throw new InvalidArgumentException('$exec cannot be an empty string');
@@ -78,6 +78,7 @@ final class DockerService
             'docker',
             'exec',
             '-t',
+            ...($interactive ? ['-i'] : []),
             '--workdir',
             '/var/www',
             ...($asRoot ? [] : ['-u', '1000']),
@@ -88,19 +89,22 @@ final class DockerService
             '-c',
             $exec,
         ];
-        return $this->runCommand($execCommand);
+        return $this->runCommand($execCommand, $interactive);
     }
 
-    private function runCommand(array $command): bool|Process
+    private function runCommand(array $command, bool $interactive = false): bool|Process
     {
         $process = new Process($command);
         $process->setTimeout(null);
-        if ($this->outputter) {
+        if (!$interactive && $this->outputter) {
             $this->outputter->startCommand();
             $process = $this->processHelper->run(new NullOutput(), $process, callback: [$this->outputter, 'output']);
             $this->outputter->endCommand();
             return $process->isSuccessful();
         } else {
+            if ($interactive) {
+                $process->setTty(true);
+            }
             $process->run();
             return $process->isSuccessful();
         }
