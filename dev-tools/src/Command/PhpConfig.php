@@ -14,7 +14,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Path;
 
-// TODO either subclass the Docker command or call that command from here to make code more DRY
 class PhpConfig extends BaseCommand
 {
     protected static $defaultName = 'php';
@@ -126,7 +125,10 @@ class PhpConfig extends BaseCommand
         EOL;
 
         // Run the command
-        return $this->runDockerCommand($command, asRoot: true, requiresRestart: true);
+        $output = clone $this->getVar('output');
+        $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
+        $suppressMessages = !$this->getVar('output')->isVeryVerbose();
+        return $this->runDockerCommand($command, $output, asRoot: true, requiresRestart: true, suppressMessages: $suppressMessages);
     }
 
     protected function toggleDebug(): int|bool
@@ -145,7 +147,11 @@ class PhpConfig extends BaseCommand
         $path = $phpService->getDebugPath($version);
         $io->writeln(self::STEP_STYLE . "Turning debug $onOff</>");
         $command = "echo \"$value\" > \"{$path}\" && /etc/init.d/apache2 reload";
-        return $this->runDockerCommand($command, asRoot: true);
+
+        $output = clone $this->getVar('output');
+        $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
+        $suppressMessages = !$this->getVar('output')->isVeryVerbose();
+        return $this->runDockerCommand($command, $output, asRoot: true, suppressMessages: $suppressMessages);
     }
 
     protected function printPhpInfo(): int|bool
@@ -153,39 +159,8 @@ class PhpConfig extends BaseCommand
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
         $io->writeln(self::STEP_STYLE . 'Printing PHP info</>');
-        return $this->runDockerCommand('php -i', output: $this->getVar('output'));
-    }
-
-    protected function runDockerCommand(string $command, bool $asRoot = false, ?OutputInterface $output = null, bool $requiresRestart = false): int|bool
-    {
-        /** @var SymfonyStyle $io */
-        $io = $this->getVar('io');
-        if (!$output) {
-            // $output = $this->getVar('output');
-            $output = clone $this->getVar('output');
-            $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
-        }
-        $dockerService = new DockerService($this->getVar('env'), $output);
-        if ($io->isVeryVerbose()) {
-            $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
-        }
-
-        $success = $dockerService->exec($command, $asRoot);
-        if (!$success) {
-            $io->error('Problem occured while running command in docker container.');
-            return Command::FAILURE;
-        }
-
-        if ($requiresRestart) {
-            sleep(1);
-            $success = $dockerService->up(false);
-            if (!$success) {
-                $io->error('Could not restart container.');
-                return Command::FAILURE;
-            }
-        }
-
-        return false;
+        $suppressMessages = !$this->getVar('output')->isVeryVerbose();
+        return $this->runDockerCommand('php -i', $this->getVar('output'), suppressMessages: $suppressMessages);
     }
 
     /**

@@ -54,7 +54,7 @@ class Docker extends BaseCommand
         $command = $input->getArgument('exec');
 
         // Run the command
-        $failureCode = $this->runDockerCommand(implode(' ', $command), $input->getOption('as-root'));
+        $failureCode = $this->runDockerCommand(implode(' ', $command), $this->getVar('output'), $input->getOption('as-root'));
         if ($failureCode) {
             return $failureCode;
         }
@@ -63,22 +63,6 @@ class Docker extends BaseCommand
             $io->success('Command successfully run in docker container.');
         }
         return Command::SUCCESS;
-    }
-
-    protected function runDockerCommand(string $command, bool $asRoot = false): int|bool
-    {
-        /** @var SymfonyStyle $io */
-        $io = $this->getVar('io');
-        $dockerService = new DockerService($this->getVar('env'), $io);
-        $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
-
-        $success = $dockerService->exec($command, $asRoot);
-        if (!$success) {
-            $io->error('Problem occured while running command in docker container.');
-            return Command::FAILURE;
-        }
-
-        return false;
     }
 
     /**

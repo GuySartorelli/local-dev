@@ -54,8 +54,7 @@ class Sake extends BaseCommand
         $command = array_merge(['vendor/bin/sake'], $input->getArgument('task'));
 
         // Run the command
-        // TODO either subclass the Docker command or call that command from here to make code more DRY
-        $failureCode = $this->runDockerCommand(implode(' ', $command));
+        $failureCode = $this->runDockerCommand(implode(' ', $command), $this->getVar('output'));
         if ($failureCode) {
             return $failureCode;
         }
@@ -64,24 +63,6 @@ class Sake extends BaseCommand
             $io->success('Command successfully run in docker container.');
         }
         return Command::SUCCESS;
-    }
-
-    protected function runDockerCommand(string $command): int|bool
-    {
-        /** @var SymfonyStyle $io */
-        $io = $this->getVar('io');
-        $dockerService = new DockerService($this->getVar('env'), $io);
-        if (!$this->isSubCommand || $io->isVerbose()) {
-            $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
-        }
-
-        $success = $dockerService->exec($command);
-        if (!$success) {
-            $io->error('Problem occured while running command in docker container.');
-            return Command::FAILURE;
-        }
-
-        return false;
     }
 
     /**

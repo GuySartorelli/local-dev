@@ -316,25 +316,6 @@ class Up extends BaseCommand
         return $phpConfig->run(new ArrayInput($args), $this->getVar('output'));
     }
 
-    protected function runDockerCommand(string $command, $output = null): string|int|bool
-    {
-        // TODO probably pull this into basecommand
-        if (!$output) {
-            $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
-        }
-        $dockerService = new DockerService($this->getVar('env'), $output);
-
-        $success = $dockerService->exec($command);
-        if (!$success) {
-            return Command::FAILURE;
-        }
-
-        if ($output instanceof BufferedOutput) {
-            return $output->fetch();
-        }
-        return false;
-    }
-
     protected function buildComposerProject(): int|bool
     {
         $input = $this->getVar('input');
