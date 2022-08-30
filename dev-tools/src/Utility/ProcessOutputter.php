@@ -2,6 +2,7 @@
 
 namespace DevTools\Utility;
 
+use LogicException;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -21,6 +22,9 @@ class ProcessOutputter
     public function output(string $type, string $buffer): void
     {
         if (!$this->output->isVerbose()) {
+            if (!$this->progressBar) {
+                throw new LogicException('You forgot to call startCommand()');
+            }
             $this->progressBar->advance();
         } else {
             $this->output->write($buffer);
