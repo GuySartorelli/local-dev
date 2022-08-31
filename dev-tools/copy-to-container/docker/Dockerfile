@@ -129,10 +129,15 @@ RUN apt-get install -y nano
 
 # Install WKHTMLTOPDF QT ptached
 RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
-RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
-RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
+# For ubuntu 20.04 and 22.04:
+# RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
+# RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
+# For ubuntu 18.04:
+RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bionic_amd64.deb
+RUN dpkg -i wkhtmltox_0.12.6-1.bionic_amd64.deb
 RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
 RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
+
 
 # Put localhost in place
 COPY docker_apache_default /etc/apache2/sites-available/000-default.conf
