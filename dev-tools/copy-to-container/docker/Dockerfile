@@ -112,18 +112,6 @@ RUN apt-get install -y php8.1-tidy
 RUN apt-get install -y php8.1-xdebug
 RUN apt-get install -y php8.1-zip
 
-# PHP CLI
-# Use php8.0 by default
-RUN rm /etc/alternatives/php
-RUN ln -s /usr/bin/php8.0 /etc/alternatives/php
-
-# Apache2 CLI
-# Defaults to php7.4, change to php8.0
-RUN rm /etc/apache2/mods-enabled/php7.4.conf
-RUN rm /etc/apache2/mods-enabled/php7.4.load
-RUN ln -s /etc/apache2/mods-available/php8.0.conf /etc/apache2/mods-enabled/php8.0.conf
-RUN ln -s /etc/apache2/mods-available/php8.0.load /etc/apache2/mods-enabled/php8.0.load
-
 # Install other packages
 RUN apt-get install -y nano
 
