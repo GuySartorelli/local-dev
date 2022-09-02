@@ -26,9 +26,9 @@ class PHPService
     }
 
     /**
-     * Get the PHP version of the current webserver container
+     * Get the CLI PHP version of the current webserver container
      */
-    public function getVersion(): string
+    public function getCliPhpVersion(): string
     {
         $failure = $this->runDockerCommand('echo $(php -r "echo PHP_MAJOR_VERSION . \'.\' . PHP_MINOR_VERSION;")');
         $version = trim($this->dockerOutput->fetch());
@@ -39,11 +39,27 @@ class PHPService
     }
 
     /**
+     * Get the Apache PHP version of the current webserver container
+     */
+    public function getApachePhpVersion(): string
+    {
+        $failure = $this->runDockerCommand('ls /etc/apache2/mods-enabled/ | grep php[0-9.]*\.conf');
+        $output = trim($this->dockerOutput->fetch());
+        $regex = '/^php([0-9.]+)\.conf$/';
+        if ($failure || !preg_match($regex, $output)) {
+            throw new RuntimeException("Error fetching PHP version: $output");
+        }
+        $version = preg_replace($regex, '$1', $output);
+        return $version;
+    }
+
+    /**
      * Get the statis of XDebug in the current webserver container
      */
     public function debugIsEnabled(?string $version = null): bool
     {
-        $version ??= $this->getVersion();
+        // Assume by this point the PHP versions are the same.
+        $version ??= $this->getCliPhpVersion();
         $path = $this->getDebugPath($version);
         $failure = $this->runDockerCommand("cat {$path}");
         $debug = trim($this->dockerOutput->fetch());

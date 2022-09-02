@@ -55,7 +55,7 @@ class Info extends BaseCommand
             "33{$env->getSuffix()}",
             "{$env->getIpAddress()}",
             $phpService->debugIsEnabled() ? 'On' : 'Off',
-            $phpService->getVersion(),
+            $phpService->getCliPhpVersion(), // Assume Apache version is the same
             implode(', ', PHPService::getAvailableVersions()),
             ...array_values($containers),
         ]]);

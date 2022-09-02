@@ -105,30 +105,42 @@ class PhpConfig extends BaseCommand
             return Command::INVALID;
         }
 
-        $oldVersion = $phpService->getVersion();
+        $oldVersionCLI = $phpService->getCliPhpVersion();
+        $oldVersionApache = $phpService->getApachePhpVersion();
+        $requiresRestart = false;
 
-        if ($oldVersion === $version) {
+        if ($oldVersionCLI === $oldVersionApache && $oldVersionApache === $version) {
             $io->writeln(self::STEP_STYLE . "Already using version $version - skipping.</>");
             return false;
         }
 
-        $io->writeln(self::STEP_STYLE . "Swapping PHP from $oldVersion to $version.</>");
+        if ($oldVersionCLI !== $version) {
+            $io->writeln(self::STEP_STYLE . "Swapping CLI PHP from $oldVersionCLI to $version.</>");
 
-        $command = <<<EOL
-        rm /etc/alternatives/php && \\
-        ln -s /usr/bin/php{$version} /etc/alternatives/php && \\
-        rm /etc/apache2/mods-enabled/php{$oldVersion}.conf && \\
-        rm /etc/apache2/mods-enabled/php{$oldVersion}.load && \\
-        ln -s /etc/apache2/mods-available/php$version.conf /etc/apache2/mods-enabled/php$version.conf && \\
-        ln -s /etc/apache2/mods-available/php$version.load /etc/apache2/mods-enabled/php$version.load && \\
-        /etc/init.d/apache2 reload
-        EOL;
+            $command = <<<EOL
+            rm /etc/alternatives/php && \\
+            ln -s /usr/bin/php{$version} /etc/alternatives/php
+            EOL;
+        }
+
+        if ($oldVersionApache !== $version) {
+            $io->writeln(self::STEP_STYLE . "Swapping Apache PHP from $oldVersionApache to $version.</>");
+
+            $command = <<<EOL
+            rm /etc/apache2/mods-enabled/php{$oldVersionApache}.conf && \\
+            rm /etc/apache2/mods-enabled/php{$oldVersionApache}.load && \\
+            ln -s /etc/apache2/mods-available/php$version.conf /etc/apache2/mods-enabled/php$version.conf && \\
+            ln -s /etc/apache2/mods-available/php$version.load /etc/apache2/mods-enabled/php$version.load && \\
+            /etc/init.d/apache2 reload
+            EOL;
+            $requiresRestart = true;
+        }
 
         // Run the command
         $output = clone $this->getVar('output');
         $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         $suppressMessages = !$this->getVar('output')->isVeryVerbose();
-        return $this->runDockerCommand($command, $output, asRoot: true, requiresRestart: true, suppressMessages: $suppressMessages);
+        return $this->runDockerCommand($command, $output, asRoot: true, requiresRestart: $requiresRestart, suppressMessages: $suppressMessages);
     }
 
     protected function toggleDebug(): int|bool
@@ -138,7 +150,7 @@ class PhpConfig extends BaseCommand
         /** @var PHPService $phpService */
         $phpService = $this->getVar('phpService');
         $value = 'zend_extension=xdebug.so';
-        $version = $phpService->getVersion();
+        $version = $phpService->getCliPhpVersion();
         $onOff = 'on';
         if ($phpService->debugIsEnabled($version)) {
             $onOff = 'off';
