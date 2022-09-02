@@ -267,7 +267,7 @@ class Up extends BaseCommand
         // Get the php version for the selected recipe and version
         $recipe = $input->getOption('recipe');
         $command = "composer show -a -f json {$recipe} {$input->getOption('constraint')}";
-        $dockerReturn = $this->runDockerCommand($command);
+        $dockerReturn = $this->runDockerCommand($command, suppressMessages: !$io->isVerbose());
         if ($dockerReturn === Command::FAILURE) {
             $io->warning('Could not fetch PHP version from composer. Using default.');
             return;
@@ -341,7 +341,7 @@ class Up extends BaseCommand
         ];
 
         // Run composer command
-        $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'));
+        $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose());
         if ($result === Command::FAILURE) {
             $io->error('Couldn\'t create composer project.');
             return $result;
@@ -409,7 +409,7 @@ class Up extends BaseCommand
             if (!$this->filesystem->exists($prPath)) {
                 // Try composer require-ing it - and if that fails, toss out a warning about it and move on.
                 $io->writeln(self::STEP_STYLE . $pr['composerName'] . ' is not yet added as a dependency - requiring it.</>');
-                $result = $this->runDockerCommand('composer require ' . $pr['composerName'], $this->getVar('output'));
+                $result = $this->runDockerCommand('composer require ' . $pr['composerName'], $this->getVar('output'), suppressMessages: !$io->isVerbose());
                 if ($result) {
                     $io->warning('Could not check out PR for ' . $pr['composerName'] . ' - please check out that PR manually.');
                     $returnVal = Command::FAILURE;
@@ -443,7 +443,9 @@ class Up extends BaseCommand
                 ],
             ];
             foreach ($commands as $command) {
-                $io->writeln(self::STEP_STYLE . 'Running command: ' . implode(' ', $command) . '</>');
+                if ($io->isVerbose()) {
+                    $io->writeln(self::STEP_STYLE . 'Running command: ' . implode(' ', $command) . '</>');
+                }
                 $this->outputter->startCommand();
                 $this->processHelper->run(new NullOutput(), new Process($command), callback: [$this->outputter, 'output']);
                 $this->outputter->endCommand();
