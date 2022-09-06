@@ -3,7 +3,6 @@
 namespace DevTools\Command;
 
 use Composer\Semver\Semver;
-use Composer\Semver\VersionParser;
 use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
@@ -19,7 +18,6 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
