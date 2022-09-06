@@ -549,7 +549,7 @@ class Up extends BaseCommand
      */
     private function parsePr(string $prRaw): array
     {
-        if (!preg_match('@(?<org>[a-zA-Z0-9_-]*)/(?<repo>[a-zA-Z0-9_-]*)(/pull/|#)(?<pr>[0-9]*)$@', $prRaw, $matches)) {
+        if (!preg_match('@(?<org>[a-zA-Z0-9_-]*)/(?<repo>[a-zA-Z0-9_-]*)(/pull/|#)(?<pr>[0-9]*)@', $prRaw, $matches)) {
             throw new InvalidArgumentException("'$prRaw' is not a valid github PR reference.");
         }
         return $matches;
