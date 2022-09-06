@@ -45,7 +45,7 @@ class Up extends BaseCommand
     /**
      * Characters that cannot be used for an environment name
      */
-    protected static string $invalidEnvNameChars = ' !@#$%^&*()"\',.<>/?:;';
+    protected static string $invalidEnvNameChars = ' !@#$%^&*()"\',.<>/?:;\\';
 
     protected static bool $notifyOnCompletion = true;
 
