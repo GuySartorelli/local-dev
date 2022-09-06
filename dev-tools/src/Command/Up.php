@@ -65,7 +65,7 @@ class Up extends BaseCommand
         $this->processHelper = $this->getHelper('process');
         $this->outputter = new ProcessOutputter($output);
         $this->normaliseRecipe();
-        if (str_contains($input->getOption('composer-args') ?? '', '--no-install')) {
+        if (str_contains($input->getOption('composer-args') ?? '', '--no-install') && !empty($input->getOption('pr'))) {
             $this->getVar('io')->warning('Composer --no-install has been set. Cannot checkout PRs.');
             $this->setVar('prs', []);
         } else {
