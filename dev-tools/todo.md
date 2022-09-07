@@ -1,5 +1,10 @@
 # Todo
 
+- For up --pr make sure PR's dependencies are respected
+  - enforce a no-install on the create-project
+  - Update composer.json with the appropriate [repositories](https://getcomposer.org/doc/05-repositories.md#vcs) config
+  - Update composer.json to use the PR branch aliased as the original constraint (e.g. "dev-pulls/4.11/the-pr as 4.11.x-dev")
+  - After all PRs are added to composer.json, do a `composer install --prefer-source --no-interaction`
 - If a PR is for a version we're not currently installing, panic.
   - e.g. interactive "the PR you want is for x.y, but you're installing a.b. Continue installing? Your PR won't be checked out, you'll have to do that manually."
 - Set up a composer plugin or similar that does git-set-remotes on everything during install.
