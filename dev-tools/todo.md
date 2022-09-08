@@ -1,8 +1,16 @@
 # Todo
 
+- New command for database stuff
+  - dump [path]
+    - inside the mariadb container: `mysqldump -p SS_mysite | gzip > $SITE_NAME.$(date +%FT%H%M).sql.gz`
+    - `docker cp $SITE_NAME_$PREFIX_mariadb:/$SITE_NAME.{whatever date and time}.sql.gz $PATH/$SITE_NAME.{whatever date and time}.sql.gz`
+    - inside the mariadb container: `rm $SITE_NAME.*.sql.gz`
 - For up --pr make sure PR's dependencies are respected
   - enforce a no-install on the create-project
   - Update composer.json with the appropriate [repositories](https://getcomposer.org/doc/05-repositories.md#vcs) config
+    - You'll need a read-only github token that composer can use. Consider the below resources
+    - https://www.previousnext.com.au/blog/managing-composer-github-access-personal-access-tokens
+    - https://getcomposer.org/doc/articles/handling-private-packages.md#security
   - Update composer.json to use the PR branch aliased as the original constraint (e.g. "dev-pulls/4.11/the-pr as 4.11.x-dev")
   - After all PRs are added to composer.json, do a `composer install --prefer-source --no-interaction`
 - If a PR is for a version we're not currently installing, panic.
