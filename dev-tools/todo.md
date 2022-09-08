@@ -5,6 +5,9 @@
     - inside the mariadb container: `mysqldump -p SS_mysite | gzip > $SITE_NAME.$(date +%FT%H%M).sql.gz`
     - `docker cp $SITE_NAME_$PREFIX_mariadb:/$SITE_NAME.{whatever date and time}.sql.gz $PATH/$SITE_NAME.{whatever date and time}.sql.gz`
     - inside the mariadb container: `rm $SITE_NAME.*.sql.gz`
+  - restore {file}
+    - copy file up to mariadb container
+    - inside the mariadb container: `zcat $FILE | mysql -p SS_mysite && rm $FILE`
 - For up --pr make sure PR's dependencies are respected
   - enforce a no-install on the create-project
   - Update composer.json with the appropriate [repositories](https://getcomposer.org/doc/05-repositories.md#vcs) config
