@@ -178,7 +178,7 @@ class Up extends BaseCommand
             $sakeReturn = Command::INVALID;
         }
         if ($sakeReturn !== Command::SUCCESS) {
-            $url = "{$environment->getBaseURL()}/dev/build>";
+            $url = "{$environment->getBaseURL()}/dev/build";
             $io->warning([
                 'Unable to build the db.',
                 "Build the db by going to <href=$url>$url</>",
