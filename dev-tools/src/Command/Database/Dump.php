@@ -31,6 +31,9 @@ class Dump extends BaseCommand
         if (!$fileSystem->exists($dumpDir)) {
             throw new LogicException("dump-dir '$dumpDir' does not exist.");
         }
+        if (str_contains($dumpDir, ':') || str_contains($input->getArgument('filename'), ':')) {
+            throw new LogicException('Neither "dump-dir" nor "filename" can contain a colon.');
+        }
         $this->setVar('dump-dir', $dumpDir);
         parent::initialize($input, $output);
     }
