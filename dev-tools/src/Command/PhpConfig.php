@@ -202,7 +202,7 @@ class PhpConfig extends BaseCommand
         $this->addArgument(
             'env-path',
             InputArgument::OPTIONAL,
-            'The full path to the directory of the environment to destroy.',
+            'The full path to the directory of the environment.',
             './'
         );
     }

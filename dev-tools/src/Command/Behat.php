@@ -101,14 +101,14 @@ class Behat extends BaseCommand
             'env-path',
             'p',
             InputOption::VALUE_OPTIONAL,
-            'The full path to the directory of the environment to destroy.',
+            'The full path to the directory of the environment to run tests in.',
             './'
         );
         $this->addOption(
             'tags',
             't',
             InputOption::VALUE_OPTIONAL,
-            'The full path to the directory of the environment to destroy.',
+            'Tags for specific tests to be run. Leave blank (i.e. --tags=) to run all tests.',
             'gsat'
         );
     }
