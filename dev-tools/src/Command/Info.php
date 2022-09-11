@@ -29,13 +29,8 @@ class Info extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
-        try {
-            $this->setVar('env', $env = new Environment($proposedPath));
-        } catch (LogicException $e) {
-            $io->error($e->getMessage());
-            return Command::INVALID;
-        }
+        /** @var Environment $env */
+        $env = $this->getVar('env');
 
         $phpService = new PHPService($env, $this->getVar('output'));
         $containers = $this->getContainersStatus();

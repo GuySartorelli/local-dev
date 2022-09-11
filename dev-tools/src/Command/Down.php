@@ -45,17 +45,12 @@ class Down extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getArgument('env-path')), getcwd());
-        try {
-            $this->setVar('env', $environment = new Environment($proposedPath));
-        } catch (LogicException $e) {
-            $io->error($e->getMessage());
-            return Command::INVALID;
-        }
+        /** @var Environment $env */
+        $env = $this->getVar('env');
 
         // Make sure we're not _in_ the environment dir when we destroy it.
-        if (Path::isBasePath($environment->getBaseDir(), getcwd())) {
-            $projectsDir = Path::join($environment->getBaseDir(), '../');
+        if (Path::isBasePath($env->getBaseDir(), getcwd())) {
+            $projectsDir = Path::join($env->getBaseDir(), '../');
             chdir($projectsDir);
         }
 
@@ -68,7 +63,7 @@ class Down extends BaseCommand
         // Delete environment directory
         try {
             $io->writeln(self::STEP_STYLE . 'Removing environment directory</>');
-            $this->filesystem->remove($environment->getBaseDir());
+            $this->filesystem->remove($env->getBaseDir());
         } catch (IOException $e) {
             $io->error('Couldn\'t delete environment directory: ' . $e->getMessage());
             return Command::FAILURE;
@@ -76,7 +71,7 @@ class Down extends BaseCommand
 
         // Release suffix now that we aren't using it for the directory.
         // This way if we can't remove the hosts entry we can still re-use this suffix.
-        Config::releaseSuffix($environment->getSuffix());
+        Config::releaseSuffix($env->getSuffix());
 
         // Remove hosts entry
         $failureCode = $this->cleanUpHosts();
@@ -84,7 +79,7 @@ class Down extends BaseCommand
             return $failureCode;
         }
 
-        $io->success("Env {$environment->getName()} successfully destroyed.");
+        $io->success("Env {$env->getName()} successfully destroyed.");
         return Command::SUCCESS;
     }
 

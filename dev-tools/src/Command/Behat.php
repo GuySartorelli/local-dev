@@ -44,14 +44,8 @@ class Behat extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $proposedPath = Path::makeAbsolute(Path::canonicalize($input->getOption('env-path')), getcwd());
-        try {
-            $env = new Environment($proposedPath);
-            $this->setVar('env', $env);
-        } catch (LogicException $e) {
-            $io->error($e->getMessage());
-            return Command::INVALID;
-        }
+        /** @var Environment $env */
+        $env = $this->getVar('env');
 
         $io->writeln(self::STEP_STYLE . 'Clearing artifacts dir</>');
         $artifactsPath = Path::join($env->getWebRoot(), 'artifacts');

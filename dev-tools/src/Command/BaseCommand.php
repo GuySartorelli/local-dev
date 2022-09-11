@@ -3,6 +3,7 @@
 namespace DevTools\Command;
 
 use DevTools\Utility\DockerService;
+use DevTools\Utility\Environment;
 use InvalidArgumentException;
 use Joli\JoliNotif\Notification;
 use Joli\JoliNotif\NotifierFactory;
@@ -11,6 +12,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Filesystem\Path;
 
 abstract class BaseCommand extends Command
 {
@@ -35,6 +37,7 @@ abstract class BaseCommand extends Command
             // Symfony's quiet is actually silent.
             $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         }
+        $this->initiateEnv($input);
         $this->resetVars();
         $this->setVar('input', $input);
         $this->setVar('output', $output);
@@ -44,6 +47,21 @@ abstract class BaseCommand extends Command
     protected function resetVars(): void
     {
         $this->commandVars = [];
+    }
+
+    protected function initiateEnv(InputInterface $input)
+    {
+        $proposedPath = '';
+        if ($input->hasArgument('env-path')) {
+            $proposedPath = $input->getArgument('env-path');
+        } elseif ($input->hasOption('env-path')) {
+            $proposedPath = $input->getOption('env-path');
+        }
+
+        if ($proposedPath) {
+            $env = new Environment(Path::makeAbsolute(Path::canonicalize($proposedPath), getcwd()));
+            $this->setVar('env', $env);
+        }
     }
 
     protected function getVar(string $varName): mixed
