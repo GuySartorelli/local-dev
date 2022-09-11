@@ -37,8 +37,8 @@ abstract class BaseCommand extends Command
             // Symfony's quiet is actually silent.
             $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         }
-        $this->initiateEnv($input);
         $this->resetVars();
+        $this->initiateEnv($input);
         $this->setVar('input', $input);
         $this->setVar('output', $output);
         $this->setVar('io', new SymfonyStyle($input, $output));
