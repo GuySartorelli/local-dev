@@ -2,7 +2,6 @@
 
 namespace DevTools\Command;
 
-use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use LogicException;
 use RuntimeException;
@@ -56,7 +55,10 @@ class Behat extends BaseCommand
         $fileSystem->mkdir($artifactsPath);
 
         $io->writeln(self::STEP_STYLE . 'Killing any old chromedriver instances.</>');
-        $failureCode = $this->runDockerCommand('DRIVER_PID=$(pgrep chromedriver); if [ -n "$DRIVER_PID" ]; then kill -15 $DRIVER_PID > /dev/null; fi', $this->getVar('output'));
+        $failureCode = $this->runDockerCommand(
+            'DRIVER_PID=$(pgrep chromedriver); if [ -n "$DRIVER_PID" ]; then kill -15 $DRIVER_PID > /dev/null; fi',
+            $this->getVar('output')
+        );
         if ($failureCode) {
             return $failureCode;
         }
@@ -67,7 +69,10 @@ class Behat extends BaseCommand
         if ($tags) {
             $tags = "--tags=$tags";
         }
-        $failureCode = $this->runDockerCommand("$(chromedriver --log-path=artifacts/chromedriver.log --log-level=INFO > /dev/null 2>&1 &) && vendor/bin/behat $suites $tags", $this->getVar('output'));
+        $failureCode = $this->runDockerCommand(
+            "$(chromedriver --log-path=artifacts/chromedriver.log --log-level=INFO > /dev/null 2>&1 &) && vendor/bin/behat $suites $tags",
+            $this->getVar('output')
+        );
         if ($failureCode) {
             return $failureCode;
         }
