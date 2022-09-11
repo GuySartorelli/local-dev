@@ -33,6 +33,9 @@ class Docker extends BaseCommand
         if (empty($input->getArgument('exec'))) {
             throw new RuntimeException('"exec" argument must not be empty.');
         }
+        if (!in_array($input->getOption('container'), ['database', 'webserver'])) {
+            throw new RuntimeException('"container" option must be  one of "database" or "webserver".');
+        }
         parent::initialize($input, $output);
     }
 
@@ -45,12 +48,22 @@ class Docker extends BaseCommand
         $io = $this->getVar('io');
         $command = $input->getArgument('exec');
 
+        switch($input->getOption('container')) {
+            case 'database':
+                $container = DockerService::CONTAINER_DATABASE;
+                break;
+            case 'webserver':
+                $container = DockerService::CONTAINER_WEBSERVER;
+                break;
+        }
+
         // Run the command
         $failureCode = $this->runDockerCommand(
             implode(' ', $command),
             $this->getVar('output'),
             $input->getOption('as-root'),
-            interactive: $input->getOption('interactive')
+            interactive: $input->getOption('interactive'),
+            container: $container
         );
         if ($failureCode) {
             return $failureCode;
@@ -97,6 +110,13 @@ class Docker extends BaseCommand
             InputOption::VALUE_NEGATABLE,
             'Whether the docker command should be interactive.',
             false
+        );
+        $this->addOption(
+            'container',
+            'c',
+            InputOption::VALUE_OPTIONAL,
+            'Which container to run the command in. Must be one of "database" or "webserver".',
+            'webserver'
         );
     }
 }
