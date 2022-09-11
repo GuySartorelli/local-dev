@@ -1,9 +1,9 @@
 <?php
 
-namespace DevTools\Command;
+namespace DevTools\Command\Test;
 
+use DevTools\Command\BaseCommand;
 use DevTools\Utility\Environment;
-use LogicException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -16,7 +16,7 @@ use Symfony\Component\Filesystem\Path;
 
 class Behat extends BaseCommand
 {
-    protected static $defaultName = 'behat';
+    protected static $defaultName = 'test:behat';
 
     protected static $defaultDescription = 'Run behat in the webserver docker container.';
 
@@ -86,6 +86,8 @@ class Behat extends BaseCommand
      */
     protected function configure(): void
     {
+        $this->setAliases(['behat']);
+
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc

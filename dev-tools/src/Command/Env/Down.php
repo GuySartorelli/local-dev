@@ -1,11 +1,12 @@
 <?php
 
-namespace DevTools\Command;
+namespace DevTools\Command\Env;
 
+use DevTools\Command\BaseCommand;
+use DevTools\Command\UsesPassword;
 use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
-use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -19,7 +20,7 @@ class Down extends BaseCommand
 {
     use UsesPassword;
 
-    protected static $defaultName = 'down';
+    protected static $defaultName = 'env:down';
 
     protected static $defaultDescription = 'Completely tears down an environment that was created with the "up" command.';
 
@@ -140,6 +141,8 @@ class Down extends BaseCommand
     protected function configure(): void
     {
         $this->filesystem = new Filesystem();
+
+        $this->setAliases(['down']);
 
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP

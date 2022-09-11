@@ -1,22 +1,20 @@
 <?php
 
-namespace DevTools\Command;
+namespace DevTools\Command\Env;
 
-use DevTools\Utility\DockerService;
+use DevTools\Command\BaseCommand;
 use DevTools\Utility\Environment;
 use DevTools\Utility\PHPService;
-use LogicException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Filesystem\Path;
 
 class PhpConfig extends BaseCommand
 {
-    protected static $defaultName = 'php';
+    protected static $defaultName = 'env:php';
 
     protected static $defaultDescription = 'Make changes to PHP config (e.g. change php version, toggle xdebug).';
 
@@ -175,6 +173,8 @@ class PhpConfig extends BaseCommand
      */
     protected function configure(): void
     {
+        $this->setAliases(['php']);
+
         $this->setHelp(static::$defaultDescription);
         $this->addOption(
             'php-version',

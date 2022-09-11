@@ -1,10 +1,9 @@
 <?php
 
-namespace DevTools\Command;
+namespace DevTools\Command\Execute;
 
+use DevTools\Command\BaseCommand;
 use DevTools\Utility\DockerService;
-use DevTools\Utility\Environment;
-use LogicException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -12,11 +11,10 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Filesystem\Path;
 
 class Docker extends BaseCommand
 {
-    protected static $defaultName = 'docker';
+    protected static $defaultName = 'execute:docker';
 
     protected static $defaultDescription = 'Run commands in the webserver docker container.';
 
@@ -80,6 +78,8 @@ class Docker extends BaseCommand
      */
     protected function configure(): void
     {
+        $this->setAliases(['docker']);
+
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc

@@ -1,8 +1,8 @@
 <?php
 
-namespace DevTools\Command;
+namespace DevTools\Command\Execute;
 
-use DevTools\Utility\DockerService;
+use DevTools\Command\BaseCommand;
 use DevTools\Utility\Environment;
 use LogicException;
 use RuntimeException;
@@ -16,7 +16,7 @@ use Symfony\Component\Filesystem\Path;
 
 class Sake extends BaseCommand
 {
-    protected static $defaultName = 'sake';
+    protected static $defaultName = 'execute:sake';
 
     protected static $defaultDescription = 'Run sake commands in the webserver docker container.';
 
@@ -70,6 +70,8 @@ class Sake extends BaseCommand
      */
     protected function configure(): void
     {
+        $this->setAliases(['sake']);
+
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc

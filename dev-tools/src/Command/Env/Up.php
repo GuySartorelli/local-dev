@@ -1,8 +1,10 @@
 <?php
 
-namespace DevTools\Command;
+namespace DevTools\Command\Env;
 
 use Composer\Semver\Semver;
+use DevTools\Command\BaseCommand;
+use DevTools\Command\UsesPassword;
 use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
@@ -30,7 +32,7 @@ class Up extends BaseCommand
 {
     use UsesPassword;
 
-    protected static $defaultName = 'up';
+    protected static $defaultName = 'env:up';
 
     protected static $defaultDescription = 'Sets up a new docker environment with a webhost.';
 
@@ -219,6 +221,19 @@ class Up extends BaseCommand
         $webDir = $environment->getWebRoot();
 
         $this->setPHPVersion();
+
+        if ($githubToken = Config::getEnv('DT_GITHUB_TOKEN')) {
+            $io->writeln(self::STEP_STYLE . 'Adding github token to composer</>');
+            $failureCode = $this->runDockerCommand(
+                "composer config -g github-oauth.github.com $githubToken",
+                $this->getVar('output'),
+                suppressMessages: !$io->isVerbose()
+            );
+            if ($failureCode) {
+                return $failureCode;
+            }
+        }
+
         $failureCode = $this->buildComposerProject();
         if ($failureCode) {
             return $failureCode;
@@ -569,6 +584,8 @@ class Up extends BaseCommand
      */
     protected function configure(): void
     {
+        $this->setAliases(['up']);
+
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc

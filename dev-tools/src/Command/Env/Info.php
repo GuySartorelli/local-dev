@@ -1,7 +1,8 @@
 <?php
 
-namespace DevTools\Command;
+namespace DevTools\Command\Env;
 
+use DevTools\Command\BaseCommand;
 use DevTools\Utility\Environment;
 use DevTools\Utility\PHPService;
 use DevTools\Utility\ProcessOutputter;
@@ -12,12 +13,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
 
 class Info extends BaseCommand
 {
-    protected static $defaultName = 'info';
+    protected static $defaultName = 'env:info';
 
     protected static $defaultDescription = 'Get information about or change settings in a dev environment.';
 
@@ -97,6 +97,8 @@ class Info extends BaseCommand
      */
     protected function configure(): void
     {
+        $this->setAliases(['info']);
+
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc
