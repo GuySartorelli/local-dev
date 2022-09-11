@@ -18,6 +18,10 @@ final class DockerService
 
     private ?ProcessOutputter $outputter;
 
+    public const CONTAINER_WEBSERVER = '_webserver';
+
+    public const CONTAINER_DATABASE = '_database';
+
     public function __construct(Environment $environment, ?OutputInterface $output = null)
     {
         $this->environment = $environment;
@@ -66,10 +70,29 @@ final class DockerService
     }
 
     /**
+     * Copies a file from a docker container to the host's filesystem.
+     *
+     * @param string $container Which container to copy from.
+     * Must be one of self::CONTAINER_WEBSERVER or self::CONTAINER_DATABASE
+     * @param string $copyFrom Full file path to copy from in the container.
+     * @param string $copyTo Full file path to copy to on the host.
+     */
+    public function copyFromContainer(string $container, string $copyFrom, string $copyTo): bool
+    {
+        $command = [
+            'docker',
+            'cp',
+            $this->environment->getName() . $container . ":$copyFrom",
+            $copyTo,
+        ];
+        return $this->runCommand($command);
+    }
+
+    /**
      * Run some command in the webserver docker container - optionally as root.
      * @throws InvalidArgumentException
      */
-    public function exec(string $exec, bool $asRoot = false, bool $interactive = false): bool
+    public function exec(string $exec, bool $asRoot = false, bool $interactive = false, $container = self::CONTAINER_WEBSERVER): bool
     {
         if (empty($exec)) {
             throw new InvalidArgumentException('$exec cannot be an empty string');
@@ -79,10 +102,9 @@ final class DockerService
             'exec',
             '-t',
             ...($interactive ? ['-i'] : []),
-            '--workdir',
-            '/var/www',
+            ...($container === self::CONTAINER_WEBSERVER ? ['--workdir', '/var/www'] : []),
             ...($asRoot ? [] : ['-u', '1000']),
-            $this->environment->getName() . '_webserver',
+            $this->environment->getName() . $container,
             'env',
             'TERM=xterm-256color',
             'bash',

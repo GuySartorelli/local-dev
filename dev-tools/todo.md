@@ -1,14 +1,10 @@
 # Todo
 
 - New command for database stuff
-  - dump [path]
-    - inside the mariadb container: `mysqldump -p SS_mysite | gzip > $SITE_NAME.$(date +%FT%H%M).sql.gz`
-    - `docker cp $SITE_NAME_$PREFIX_mariadb:/$SITE_NAME.{whatever date and time}.sql.gz $PATH/$SITE_NAME.{whatever date and time}.sql.gz`
-    - inside the mariadb container: `rm $SITE_NAME.*.sql.gz`
-  - restore {file}
+  - restore [file]
     - copy file up to mariadb container
     - inside the mariadb container: `zcat $FILE | mysql -p SS_mysite && rm $FILE`
-- For up --pr make sure PR's dependencies are respected
+- For up --pr make sure PR's dependencies are respected - but make sure there's a way to use the current way of adding PRs after create-proj
   - enforce a no-install on the create-project
   - Update composer.json with the appropriate [repositories](https://getcomposer.org/doc/05-repositories.md#vcs) config
     - You'll need a read-only github token that composer can use. Consider the below resources

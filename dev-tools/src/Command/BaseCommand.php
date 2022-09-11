@@ -126,6 +126,7 @@ abstract class BaseCommand extends Command
         bool $requiresRestart = false,
         bool $suppressMessages = false,
         bool $interactive = false,
+        string $container = DockerService::CONTAINER_WEBSERVER
     ): string|int|bool
     {
         /** @var SymfonyStyle $io */
@@ -138,7 +139,7 @@ abstract class BaseCommand extends Command
             $io->writeln(self::STEP_STYLE . "Running command in docker container: '$command'</>");
         }
 
-        $success = $dockerService->exec($command, $asRoot, $interactive);
+        $success = $dockerService->exec($command, $asRoot, $interactive, $container);
         if (!$success) {
             $io->error('Problem occured while running command in docker container.');
             return Command::FAILURE;

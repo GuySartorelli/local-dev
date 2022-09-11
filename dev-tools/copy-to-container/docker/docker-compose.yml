@@ -33,12 +33,12 @@ services:
       mynet:
         ipv4_address: ${IP_PREFIX}.50
 
-  mariadb:
-    container_name: ${PROJECT_NAME}_mariadb
+  database-container:
+    container_name: ${PROJECT_NAME}_database
     image: mariadb:latest
     restart: always
     volumes:
-      - mariadb-volume:/var/lib/mysql
+      - database-volume:/var/lib/mysql
     environment:
       TZ: "Pacific/Auckland"
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
@@ -52,8 +52,8 @@ services:
       mynet:
 
 volumes:
-  mariadb-volume:
-    name: ${PROJECT_NAME}_mariadb-volume
+  database-volume:
+    name: ${PROJECT_NAME}_database-volume
 
 networks:
   mynet:
