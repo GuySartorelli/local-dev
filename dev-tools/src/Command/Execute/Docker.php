@@ -25,7 +25,7 @@ class Docker extends BaseCommand
      */
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
-        if (!$this->isSubCommand && !$input->getOption('quiet')) {
+        if (!$this->isSubCommand && !$input->getOption('quiet') && !$input->getOption('verbose')) {
             $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
         }
         if (empty($input->getArgument('exec'))) {
