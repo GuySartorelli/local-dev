@@ -32,6 +32,10 @@ class PHPService
     {
         $failure = $this->runDockerCommand('echo $(php -r "echo PHP_MAJOR_VERSION . \'.\' . PHP_MINOR_VERSION;")');
         $version = trim($this->dockerOutput->fetch());
+        // Strip out xdebug error if there is one.
+        if (str_contains($version, 'Could not connect to debugging client')) {
+            $version = preg_replace('/.*(\d+\.\d+)$/s', '$1', $version);
+        }
         if ($failure || !preg_match('/^\d+\.\d+$/', $version)) {
             throw new RuntimeException("Error fetching PHP version: $version");
         }
