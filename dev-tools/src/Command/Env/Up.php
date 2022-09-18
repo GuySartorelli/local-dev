@@ -337,6 +337,7 @@ class Up extends BaseCommand
 
     protected function buildComposerProject(): int|bool
     {
+        /** @var InputInterface $input */
         $input = $this->getVar('input');
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
@@ -345,6 +346,7 @@ class Up extends BaseCommand
         // Prepare composer command
         $composerArgs = [
             '--no-interaction',
+            '--no-audit',
             ...explode(' ', $input->getOption('composer-args') ?? '')
         ];
         if ($input->getOption('prefer-source')) {
@@ -353,7 +355,6 @@ class Up extends BaseCommand
         $composerCommand = [
             'composer',
             'create-project',
-            '--no-audit',
             $input->getOption('recipe') . ':' . $input->getOption('constraint'),
             './',
             ...$composerArgs,
@@ -380,7 +381,7 @@ class Up extends BaseCommand
             // Setup docker files
             $dockerDir = $environment->getDockerDir();
             $io->writeln(self::STEP_STYLE . 'Preparing docker directory</>');
-            $copyFrom = Path::join(Config::getCopyDir(), 'docker/');
+            $copyFrom = Path::join(Config::getCopyDir(), 'docker');
             $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
             $filesWithPlaceholders = [
                 'docker_apache_default',
