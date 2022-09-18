@@ -207,6 +207,9 @@ class Up extends BaseCommand
             $this->filesystem->mkdir([$envPath, $logsDir, Path::join($logsDir, 'apache2')]);
         } catch (IOException $e) {
             $io->error('Couldn\'t create environment directory: ' . $e->getMessage());
+            if ($io->isVeryVerbose()) {
+                $io->writeln($e->getTraceAsString());
+            }
             return Command::FAILURE;
         }
         return false;
@@ -255,6 +258,9 @@ class Up extends BaseCommand
             }
         } catch (IOException $e) {
             $io->error('Couldn\'t set up webroot files: ' . $e->getMessage());
+            if ($io->isVeryVerbose()) {
+                $io->writeln($e->getTraceAsString());
+            }
             return Command::FAILURE;
         }
 
@@ -387,6 +393,9 @@ class Up extends BaseCommand
             }
         } catch (IOException $e) {
             $io->error('Couldn\'t set up docker or webroot files: ' . $e->getMessage());
+            if ($io->isVeryVerbose()) {
+                $io->writeln($e->getTraceAsString());
+            }
             return Command::FAILURE;
         }
 
