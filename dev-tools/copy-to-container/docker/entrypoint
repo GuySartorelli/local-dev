@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Mailhog - will install binaries to /home/www-data/go/bin
-# ${PROJECT_NAME}:8025 for dashboard
+# {project_name}.local:8025 for dashboard
 runuser -l www-data -c 'go get github.com/mailhog/MailHog'
 runuser -l www-data -c 'go get github.com/mailhog/mhsendmail'
 runuser -l www-data -c 'nohup sh -c "/home/www-data/go/bin/MailHog" > /dev/null 2>&1 &'

@@ -1,0 +1,73 @@
+{# sink_4-x_14 example:
+   webserver:  10.0.14.50
+   database:   localhost:3314 root:root
+   phpmyadmin: 10.0.14.52 root:root?? #}
+# mailhog
+# http://{{projectName}}:8025
+
+# ssh
+# docker exec -it {{projectName}}_webserver sh -c "cd /var/www && su -s /bin/bash www-data"
+
+# mysql
+# mysql -h0.0.0.0 -P33{{suffix}} -DSS_mysite -uroot -proot
+
+version: '3.8'
+
+services:
+
+  webserver:
+    container_name: {{projectName}}_webserver
+    image: gsartorelli/webserver
+    build: .
+    restart: always
+    volumes:
+      - ../www/:/var/www
+      - ../logs/:/var/log
+      - ~/.cache/composer:/home/www-data/.cache/composer
+    domainname: {{hostSuffix}}
+    hostname: {{projectName}}
+    environment:
+      APACHE_LOG_DIR: "/var/log/apache2"
+    networks:
+      mynet:
+        ipv4_address: {{ipPrefix}}.50
+
+  database-container:
+    container_name: {{projectName}}_database
+    image: {{database}}:{{dbVersion}}
+    restart: always
+    # use ports instead of IP address for database connection so a database manager can be used on the host
+{% if database == 'mysql' or database == 'mariadb' %}
+    ports:
+      - 33{{suffix}}:3306
+    environment:
+      TZ: "Pacific/Auckland"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: 'SS_mysite'
+    volumes:
+      - database-volume:/var/lib/mysql
+{% elseif database == 'postgres' %}
+    ports:
+      - "54{{suffix}}:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+    volumes:
+      - database-volume:/data/postgresql/data
+{% endif %}
+    networks:
+      mynet:
+
+volumes:
+  database-volume:
+    name: {{projectName}}_database-volume
+
+networks:
+  mynet:
+    name: {{projectName}}_mynet
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: {{ipPrefix}}.0/24

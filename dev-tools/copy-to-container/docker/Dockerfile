@@ -1,5 +1,4 @@
-# Swapped back to 18.04 to debug behat issues - try 20.04 again at some stage, that was probably a red herring.
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
@@ -10,15 +9,19 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Using apt-get instead of apt to prevent warning about apt not having a stable CLI interface
 
-# Make all php versions other than the current main version (7.4) available
+# Make all php versions other than the current main version available
 RUN apt-get update && apt-get install -y software-properties-common
 RUN add-apt-repository -y ppa:ondrej/php
 RUN add-apt-repository -y ppa:ondrej/apache2
 
+# Required for apt install -f google-chrome-stable_current_amd64.deb later on in 20.04
+# for some missing deps such as libnss3_3.49.1-1ubuntu1.7_amd64.deb
+RUN add-apt-repository -y ppa:savoury1/ffmpeg4
+
 # Ensure any packages are installed in Dockerfile rather than docker_bash_script so
 # that this 'slice' is cached for future builds
 # Increment echo int to force an update when adding new packages for installation
-RUN apt-get update && echo 8 > /dev/null
+RUN apt-get update && echo 9 > /dev/null
 
 # Needed for a couple of the installs
 RUN apt-get install -y wget
@@ -31,27 +34,7 @@ RUN apt-get install -y apt-utils
 
 RUN apt-get install -y apache2
 
-# # Install chromium and chromedriver - the below PPA is needed if using focal or above to avoid snaps (which can't be installed in this context)
-# RUN add-apt-repository ppa:savoury1/ffmpeg4 && add-apt-repository ppa:savoury1/chromium && apt-get update
-RUN apt-get install -y chromium-browser
-RUN apt-get install -y chromium-chromedriver
-
-# # Install chrome, chromedriver, and dependencies - uncomment this if the third-party PPA for chromium above stops working
-# RUN apt-get install -y fonts-liberation xdg-utils libasound2 libatk-bridge2.0-0 libatk1.0-0 libatspi2.0-0 libcairo2 libcups2 libgbm1 libgtk-3-0 libnspr4 libnss3 libpango-1.0-0 libxdamage1 libxkbcommon0 unzip
-# RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-# RUN dpkg -i google-chrome-stable_current_amd64.deb
-# # Install and verify version of chromedriver
-# RUN BROWSER_MAJOR=$(google-chrome --version | sed 's/Google Chrome \([0-9]*\).*/\1/g') \
-#     && wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${BROWSER_MAJOR} -O chrome_version \
-#     && wget https://chromedriver.storage.googleapis.com/`cat chrome_version`/chromedriver_linux64.zip \
-#     && unzip chromedriver_linux64.zip \
-#     && mv chromedriver /usr/local/bin/ \
-#     && DRIVER_MAJOR=$(chromedriver --version | sed 's/ChromeDriver \([0-9]*\).*/\1/g') \
-#     && echo "chrome version: $BROWSER_MAJOR" \
-#     && echo "chromedriver version: $DRIVER_MAJOR" \
-#     && if [ $BROWSER_MAJOR != $DRIVER_MAJOR ]; then echo "VERSION MISMATCH"; exit 1; fi
-
-# mailhog
+# Required for mailhog
 RUN apt-get install -y golang-go
 RUN apt-get install -y git
 
@@ -72,7 +55,7 @@ RUN apt-get install -y php7.4-json
 RUN apt-get install -y php7.4-ldap
 RUN apt-get install -y php7.4-mbstring
 RUN apt-get install -y php7.4-mysql
-# RUN apt-get install -y php7.4-pgsql
+RUN apt-get install -y php7.4-pgsql
 RUN apt-get install -y php7.4-tidy
 RUN apt-get install -y php7.4-xdebug
 RUN apt-get install -y php7.4-zip
@@ -86,11 +69,10 @@ RUN apt-get install -y php8.0-dev
 RUN apt-get install -y php8.0-dom
 RUN apt-get install -y php8.0-gd
 RUN apt-get install -y php8.0-intl
-# RUN apt-get install -y php8.0-json - built into php8.0 now
 RUN apt-get install -y php8.0-ldap
 RUN apt-get install -y php8.0-mbstring
 RUN apt-get install -y php8.0-mysql
-# RUN apt-get install -y php8.0-pgsql
+RUN apt-get install -y php8.0-pgsql
 RUN apt-get install -y php8.0-tidy
 RUN apt-get install -y php8.0-xdebug
 RUN apt-get install -y php8.0-zip
@@ -107,7 +89,7 @@ RUN apt-get install -y php8.1-intl
 RUN apt-get install -y php8.1-ldap
 RUN apt-get install -y php8.1-mbstring
 RUN apt-get install -y php8.1-mysql
-# RUN apt-get install -y php8.1-pgsql
+RUN apt-get install -y php8.1-pgsql
 RUN apt-get install -y php8.1-tidy
 RUN apt-get install -y php8.1-xdebug
 RUN apt-get install -y php8.1-zip
@@ -116,16 +98,28 @@ RUN apt-get install -y php8.1-zip
 RUN apt-get install -y nano
 
 # Install WKHTMLTOPDF QT ptached
-RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
-# For ubuntu 20.04 and 22.04:
+# RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
 # RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
 # RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
-# For ubuntu 18.04:
-RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.bionic_amd64.deb
-RUN dpkg -i wkhtmltox_0.12.6-1.bionic_amd64.deb
-RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
-RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
+# RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
+# RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
 
+# Install chromium + chromedriver manually rather than with apt to ensure we get the latest version
+# also on 20.04 apt install chromium will use snap which does not work in docker
+# Increment echo 1 to get a more recent version of chrome
+RUN apt-get install -y wget unzip && \
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt install -f -y ./google-chrome-stable_current_amd64.deb && \
+    BROWSER_MAJOR=$(google-chrome --version | sed 's/Google Chrome \([0-9]*\).*/\1/g') && \
+    wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${BROWSER_MAJOR} -O chrome_version && \
+    wget https://chromedriver.storage.googleapis.com/`cat chrome_version`/chromedriver_linux64.zip && \
+    unzip chromedriver_linux64.zip && \
+    mv chromedriver /usr/local/bin/ && \
+    DRIVER_MAJOR=$(chromedriver --version | sed 's/ChromeDriver \([0-9]*\).*/\1/g') && \
+    echo "chrome version: $BROWSER_MAJOR" && \
+    echo "chromedriver version: $DRIVER_MAJOR" && \
+    if [ $BROWSER_MAJOR != $DRIVER_MAJOR ]; then echo "VERSION MISMATCH"; exit 1; fi && \
+    echo 1 > /dev/null
 
 # Put localhost in place
 COPY docker_apache_default /etc/apache2/sites-available/000-default.conf

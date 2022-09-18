@@ -14,6 +14,9 @@ use Github\AuthMethod;
 use Github\Client as GithubClient;
 use InvalidArgumentException;
 use LogicException;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use SplFileInfo;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -27,6 +30,8 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Process\Process;
+use Twig\Environment as TwigEnvironment;
+use Twig\Loader\FilesystemLoader;
 
 class Up extends BaseCommand
 {
@@ -73,6 +78,8 @@ class Up extends BaseCommand
         } else {
             $this->initializePRDetails($input->getOption('pr'));
         }
+        $twigLoader = new FilesystemLoader(Config::getTemplateDir());
+        $this->setVar('twig', new TwigEnvironment($twigLoader));
         // Need password to update hosts - get that first so user can walk away while the rest processes.
         $this->setVar('password', $this->getPassword());
     }
@@ -244,18 +251,11 @@ class Up extends BaseCommand
         try {
             // Setup environment-specific web files
             $io->writeln(self::STEP_STYLE . 'Preparing extra webroot files</>');
+            // Copy files that don't rely on variables
             $this->filesystem->mirror(Path::join(Config::getCopyDir(), 'webroot'), $webDir, options: ['override' => true]);
-            $filesWithPlaceholders = [
-                '.env',
-            ];
-            foreach ($filesWithPlaceholders as $file) {
-                $filePath = Path::join($webDir, $file);
-                if (!$this->filesystem->exists($filePath)) {
-                    $io->error("File '$file' doesn't exist!");
-                    return Command::FAILURE;
-                }
-                $this->replacePlaceholders($filePath);
-            }
+            // Render twig templates for anything else
+            $templateRoot = Path::join(Config::getTemplateDir(), 'webroot');
+            $this->renderTemplateDir($templateRoot, $webDir);
         } catch (IOException $e) {
             $io->error('Couldn\'t set up webroot files: ' . $e->getMessage());
             if ($io->isVeryVerbose()) {
@@ -367,6 +367,23 @@ class Up extends BaseCommand
             return $result;
         }
 
+        // Install postgres if appropriate
+        if ($input->getOption('db') === 'postgres') {
+            $composerCommand = [
+                'composer',
+                'require',
+                'silverstripe/postgresql',
+                ...$composerArgs,
+            ];
+
+            // Run composer command
+            $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose());
+            if ($result === Command::FAILURE) {
+                $io->error('Couldn\'t require postgres module.');
+                return $result;
+            }
+        }
+
         return false;
     }
 
@@ -382,16 +399,11 @@ class Up extends BaseCommand
             $dockerDir = $environment->getDockerDir();
             $io->writeln(self::STEP_STYLE . 'Preparing docker directory</>');
             $copyFrom = Path::join(Config::getCopyDir(), 'docker');
+            // Copy files that don't rely on variables
             $this->filesystem->mirror($copyFrom, $dockerDir, options: ['override' => true]);
-            $filesWithPlaceholders = [
-                'docker_apache_default',
-                'docker-compose.yml',
-                'entrypoint',
-            ];
-            foreach ($filesWithPlaceholders as $file) {
-                $filePath = Path::join($dockerDir, $file);
-                $this->replacePlaceholders($filePath);
-            }
+            // Render twig templates for anything else
+            $templateRoot = Path::join(Config::getTemplateDir(), 'docker');
+            $this->renderTemplateDir($templateRoot, $dockerDir);
         } catch (IOException $e) {
             $io->error('Couldn\'t set up docker or webroot files: ' . $e->getMessage());
             if ($io->isVeryVerbose()) {
@@ -507,28 +519,53 @@ class Up extends BaseCommand
     }
 
     /**
-     * Replace context-specific placeholders with the relevant bits
-     *
-     * @throws IOException
+     * Render all templates in some directory into some other directory.
      */
-    protected function replacePlaceholders(string $filePath): void
+    protected function renderTemplateDir(string $templateRoot, string $renderTo): void
+    {
+        $dirs = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($templateRoot));
+        foreach ($dirs as $file) {
+            /** @var SplFileInfo $file */
+            if ($file->isDir()){
+                continue;
+            }
+            $template = Path::makeRelative($file->getPathname(), Config::getTemplateDir());
+            $templateRelative = preg_replace('/(.*)\.twig$/', '$1', Path::makeRelative($file->getPathname(), $templateRoot));
+            $outputPath = Path::makeAbsolute($templateRelative, $renderTo);
+            $this->filesystem->dumpFile($outputPath, $this->renderTemplate($template));
+        }
+    }
+
+    /**
+     * Render a template
+     */
+    protected function renderTemplate(string $template): string
     {
         /** @var Environment $environment */
         $environment = $this->getVar('env');
+        /** @var TwigEnvironment $twig */
+        $twig = $this->getVar('twig');
+        /** @var InputInterface $input */
+        $input = $this->getVar('input');
+
+        // Prepare template variables
         $hostname = $environment->getHostName();
         $ipParts = explode('.', $environment->getIpAddress());
         array_pop($ipParts);
         $ipPrefix = implode('.', $ipParts);
         $hostParts = explode('.', $hostname);
 
-        $content = file_get_contents($filePath);
-        $content = str_replace('${PROJECT_NAME}', $environment->getName(), $content);
-        $content = str_replace('${SUFFIX}', $environment->getSuffix(), $content);
-        $content = str_replace('${HOST_NAME}', $hostname, $content);
-        $content = str_replace('${HOST_SUFFIX}', array_pop($hostParts), $content);
-        $content = str_replace('${IP_PREFIX}', $ipPrefix, $content);
+        $variables = [
+            'projectName' => $environment->getName(),
+            'suffix' => $environment->getSuffix(),
+            'hostName' => $hostname,
+            'hostSuffix' => array_pop($hostParts),
+            'ipPrefix' => $ipPrefix,
+            'database' => $input->getOption('db'),
+            'dbVersion' => $input->getOption('db-version'),
+        ];
 
-        $this->filesystem->dumpFile($filePath, $content);
+        return $twig->render($template, $variables);
     }
 
     /**
@@ -640,6 +677,20 @@ class Up extends BaseCommand
             'P',
             InputOption::VALUE_OPTIONAL,
             'The PHP version to use for this environment. Uses the lowest allowed version by default.'
+        );
+        $this->addOption(
+            'db',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'The database type to be used. Must be one of "mariadb", "mysql", "postgres".',
+            'mysql'
+        );
+        $this->addOption(
+            'db-version',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'The version of the database docker image to be used.',
+            'latest'
         );
         $this->addOption(
             'pr',

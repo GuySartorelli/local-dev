@@ -57,6 +57,14 @@ final class Config
     }
 
     /**
+     * Get the directory where templates live
+     */
+    public static function getTemplateDir(): string
+    {
+        return Path::join(self::getBaseDir(), 'templates');
+    }
+
+    /**
      * Undocumented function
      *
      * @return string
