@@ -1,6 +1,8 @@
 # Todo
 
+- Add checking db type to info command
 - New command for database stuff
+  - dump (add postgres support)
   - restore [file]
     - copy file up to mariadb container
     - inside the mariadb container: `zcat $FILE | mysql -p SS_mysite && rm $FILE`
