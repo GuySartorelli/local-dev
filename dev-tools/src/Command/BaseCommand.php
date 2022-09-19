@@ -146,8 +146,7 @@ abstract class BaseCommand extends Command
         }
 
         if ($requiresRestart) {
-            sleep(1);
-            $success = $dockerService->up(false);
+            $success = $dockerService->restart($container, timeout: 0);
             if (!$success) {
                 $io->error('Could not restart container.');
                 return Command::FAILURE;

@@ -123,8 +123,7 @@ class PhpConfig extends BaseCommand
             rm /etc/apache2/mods-enabled/php{$oldVersionApache}.conf && \\
             rm /etc/apache2/mods-enabled/php{$oldVersionApache}.load && \\
             ln -s /etc/apache2/mods-available/php$version.conf /etc/apache2/mods-enabled/php$version.conf && \\
-            ln -s /etc/apache2/mods-available/php$version.load /etc/apache2/mods-enabled/php$version.load && \\
-            /etc/init.d/apache2 reload
+            ln -s /etc/apache2/mods-available/php$version.load /etc/apache2/mods-enabled/php$version.load
             EOL;
             $requiresRestart = true;
         }

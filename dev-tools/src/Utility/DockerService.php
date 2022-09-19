@@ -70,6 +70,31 @@ final class DockerService
     }
 
     /**
+     * Restart the container(s).
+     *
+     * If no container is passed in, it restarts everything.
+     */
+    public function restart(string $container = '', ?int $timeout = null): bool
+    {
+        $command = [
+            'docker',
+            'compose',
+            'restart',
+        ];
+        if ($timeout !== null) {
+            $command[] = "-t$timeout";
+        }
+        if ($container) {
+            $command[] = ltrim($container, '_');
+        }
+        $originalDir = getcwd();
+        chdir($this->environment->getDockerDir());
+        $retVal = $this->runCommand($command);
+        chdir($originalDir ?: $this->environment->getBaseDir());
+        return $retVal;
+    }
+
+    /**
      * Copies a file from a docker container to the host's filesystem.
      *
      * @param string $container Which container to copy from.
