@@ -3,6 +3,9 @@
 namespace DevTools\Utility;
 
 use LogicException;
+use stdClass;
+use Symfony\Component\Filesystem\Exception\FileNotFoundException;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
 final class Environment
@@ -26,6 +29,23 @@ final class Environment
     public function getBaseDir(): string
     {
         return $this->baseDir;
+    }
+
+    public function getComposerJson()
+    {
+        $filePath = Path::join($this->getWebRoot(), 'composer.json');
+        $fileSystem = new Filesystem();
+        if (!$fileSystem->exists($filePath)) {
+            throw new FileNotFoundException(path: $filePath);
+        }
+        return json_decode(file_get_contents($filePath), false);
+    }
+
+    public function setComposerJson(stdClass $content)
+    {
+        $filePath = Path::join($this->getWebRoot(), 'composer.json');
+        $fileSystem = new Filesystem();
+        $fileSystem->dumpFile($filePath, json_encode($content, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES));
     }
 
     public function getWebRoot(): string

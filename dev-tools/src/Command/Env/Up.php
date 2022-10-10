@@ -3,6 +3,7 @@
 namespace DevTools\Command\Env;
 
 use Composer\Semver\Semver;
+use Composer\Semver\VersionParser;
 use DevTools\Command\BaseCommand;
 use DevTools\Command\UsesPassword;
 use DevTools\Utility\Config;
@@ -62,6 +63,8 @@ class Up extends BaseCommand
 
     protected ProcessOutputter $outputter;
 
+    private array $composerArgs = [];
+
     /**
      * @inheritDoc
      */
@@ -102,9 +105,10 @@ class Up extends BaseCommand
                 'details' => array_merge($parsed, [
                     'from-org' => $prDetails['head']['user']['login'],
                     'remote' => $prDetails['head']['repo']['ssh_url'],
-                    'branch' => $prDetails['head']['ref'],
+                    'prBranch' => $prDetails['head']['ref'],
+                    'baseBranch' => $prDetails['base']['ref'],
                 ]),
-                'composerName' => $this->getComposerName($client, $parsed),
+                'composerName' => $this->getComposerNameForPR($client, $parsed),
             ];
         }
         $this->setVar('prs', $prs);
@@ -150,7 +154,7 @@ class Up extends BaseCommand
         }
 
         // Checkout PRs if there are any
-        $this->checkoutPRs();
+        $this->handlePRs();
 
         // Update hosts file
         $this->updateHosts();
@@ -343,22 +347,7 @@ class Up extends BaseCommand
         $io = $this->getVar('io');
         $io->writeln(self::STEP_STYLE . 'Building composer project</>');
 
-        // Prepare composer command
-        $composerArgs = [
-            '--no-interaction',
-            '--no-audit',
-            ...explode(' ', $input->getOption('composer-args') ?? '')
-        ];
-        if ($input->getOption('prefer-source')) {
-            $composerArgs[] = '--prefer-source';
-        }
-        $composerCommand = [
-            'composer',
-            'create-project',
-            $input->getOption('recipe') . ':' . $input->getOption('constraint'),
-            './',
-            ...$composerArgs,
-        ];
+        $composerCommand = $this->prepareComposerCommand('create-project');
 
         // Run composer command
         $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose());
@@ -373,7 +362,7 @@ class Up extends BaseCommand
                 'composer',
                 'require',
                 'silverstripe/postgresql',
-                ...$composerArgs,
+                ...$this->prepareComposerArgs('require'),
             ];
 
             // Run composer command
@@ -385,6 +374,61 @@ class Up extends BaseCommand
         }
 
         return false;
+    }
+
+    /**
+     * Prepares arguments for a composer command that will result in installing dependencies
+     */
+    private function prepareComposerArgs(string $commandType): array
+    {
+        if (!$this->composerArgs) {
+            /** @var InputInterface $input */
+            $input = $this->getVar('input');
+            // Prepare composer command
+            $this->composerArgs = [
+                '--no-interaction',
+                ...explode(' ', $input->getOption('composer-args') ?? '')
+            ];
+            if ($input->getOption('prefer-source')) {
+                $this->composerArgs[] = '--prefer-source';
+            }
+        }
+        $args = $this->composerArgs;
+
+        // Don't install on create-project if a PR has dependencies
+        if ($commandType === 'create-project' && $input->getOption('pr-has-deps') && !empty($this->getVar('prs'))) {
+            $args[] = '--no-install';
+        }
+
+        // composer install can't take --no-audit, but we don't want to include audits in other commands.
+        if ($commandType !== 'install') {
+            $args[] = '--no-audit';
+        }
+
+        // Make sure --no-install isn't in there twice.
+        return array_unique($args);
+    }
+
+    /**
+     * Prepares a composer install or create-project command
+     *
+     * @param string $commandType - should be install or create-project
+     */
+    private function prepareComposerCommand(string $commandType)
+    {
+        /** @var InputInterface $input */
+        $input = $this->getVar('input');
+        $composerArgs = $this->prepareComposerArgs($commandType);
+        $command = [
+            'composer',
+            $commandType,
+            ...$composerArgs
+        ];
+        if ($commandType === 'create-project') {
+            $command[] = $input->getOption('recipe') . ':' . $input->getOption('constraint');
+            $command[] = './';
+        }
+        return $command;
     }
 
     protected function spinUpDocker(): int|bool
@@ -423,28 +467,80 @@ class Up extends BaseCommand
         return false;
     }
 
-    protected function checkoutPRs(): int|bool
+    protected function handlePRs(): int|bool
+    {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        /** @var InputInterface $input */
+        $input = $this->getVar('input');
+        $prs = $this->getVar('prs');
+        if (empty($prs)) {
+            return false;
+        }
+
+        if ($input->getOption('pr-has-deps')) {
+            // Add prs to composer.json
+            $this->addPRsToComposer($prs);
+
+            // Run composer install
+            $io->writeln(self::STEP_STYLE . 'Running composer install now that dependencies have been defined</>');
+            $composerCommand = $this->prepareComposerCommand('install');
+            $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose());
+            if ($result === Command::FAILURE) {
+                $io->error('Couldn\'t run composer install.');
+                return $result;
+            }
+            return false;
+        }
+
+        return $this->checkoutPRs($prs);
+    }
+
+    protected function addPRsToComposer(array $prs): void
+    {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+        /** @var Environment $environment */
+        $environment = $this->getVar('env');
+        $json = $environment->getComposerJson();
+        $parser = new VersionParser();
+        foreach ($prs as $pr) {
+            $io->writeln(self::STEP_STYLE . 'Adding PR for ' . $pr['composerName'] . ' to composer.json dependencies</>');
+            $details = $pr['details'];
+            // Get constraint with alias
+            if (isset($json->require->{$pr['composerName']})) {
+                $alias = $parser->parseConstraints($json->require->{$pr['composerName']})->getUpperBound()->getVersion();
+            } else {
+                $alias = $parser->normalizeBranch($details['baseBranch']);
+            }
+            $constraint = $parser->normalizeBranch($details['prBranch']) . ' as ' . $alias;
+            // Set dependency and repository info in composer.json
+            $json->require->{$pr['composerName']} = $constraint;
+            $json->repositories[] = json_decode(json_encode([
+                'type' => 'vcs',
+                'url' => $details['remote'],
+            ], JSON_FORCE_OBJECT), false);
+        }
+        $environment->setComposerJson($json);
+    }
+
+    protected function checkoutPRs(array $prs): int|bool
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $originalDir = getcwd();
-        $prs = $this->getVar('prs');
-        if (empty($prs)) {
-            return false;
-        }
-
         $returnVal = false;
         foreach ($prs as $pr) {
             $io->writeln(self::STEP_STYLE . 'Setting up PR for ' . $pr['composerName'] . '</>');
             $details = $pr['details'];
-            $io->writeln(self::STEP_STYLE . 'Setting remote ' . $details['remote'] . ' as "pr" and checking out branch ' . $details['branch'] . '</>');
+            $io->writeln(self::STEP_STYLE . 'Setting remote ' . $details['remote'] . ' as "pr" and checking out branch ' . $details['prBranch'] . '</>');
             $prPath = Path::join($environment->getWebRoot(), 'vendor', $pr['composerName']);
             if (!$this->filesystem->exists($prPath)) {
                 // Try composer require-ing it - and if that fails, toss out a warning about it and move on.
                 $io->writeln(self::STEP_STYLE . $pr['composerName'] . ' is not yet added as a dependency - requiring it.</>');
-                $result = $this->runDockerCommand('composer require ' . $pr['composerName'], $this->getVar('output'), suppressMessages: !$io->isVerbose());
+                $result = $this->runDockerCommand('composer require --prefer-source ' . $pr['composerName'], $this->getVar('output'), suppressMessages: !$io->isVerbose());
                 if ($result) {
                     $io->warning('Could not check out PR for ' . $pr['composerName'] . ' - please check out that PR manually.');
                     $returnVal = Command::FAILURE;
@@ -474,7 +570,7 @@ class Up extends BaseCommand
                     'git',
                     'checkout',
                     '--track',
-                    'pr/' . $details['branch'],
+                    'pr/' . $details['prBranch'],
                 ],
             ];
             foreach ($commands as $command) {
@@ -620,7 +716,7 @@ class Up extends BaseCommand
     /**
      * Get the composer name of a project from the composer.json of a repo.
      */
-    private function getComposerName(GithubClient $client, array $pr): string
+    private function getComposerNameForPR(GithubClient $client, array $pr): string
     {
         $composerJson = $client->repo()->contents()->download($pr['org'], $pr['repo'], 'composer.json');
         return json_decode($composerJson, true)['name'];
@@ -702,6 +798,13 @@ class Up extends BaseCommand
             Multiple PRs can be included (for separate modules) by using `--pr` multiple times.
             DESC,
             []
+        );
+        $this->addOption(
+            'pr-has-deps',
+            null,
+            InputOption::VALUE_NEGATABLE,
+            'A PR from the --pr option has dependencies which need to be included in the first composer install.',
+            false
         );
         $this->addOption(
             'composer-args',
