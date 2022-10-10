@@ -1,5 +1,7 @@
 # Todo
 
+- Add a way to attach an environment to an existing dir
+  - e.g. if I start up a composer install somewhere, I want to add a docker env to it.
 - Add checking db type to info command
 - New command for database stuff
   - dump (add postgres support)
