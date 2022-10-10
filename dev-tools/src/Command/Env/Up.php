@@ -192,11 +192,13 @@ class Up extends BaseCommand
         }
         if ($sakeReturn !== Command::SUCCESS) {
             $url = "{$environment->getBaseURL()}/dev/build";
-            $io->warning([
+
+            // Can't use $io->warning() because it escapes the link into plain text
+            $io->block([
                 'Unable to build the db.',
                 "Build the db by going to <href=$url>$url</>",
                 'Or run: dev-tools sake dev/build -p ' . $environment->getBaseDir(),
-            ]);
+            ], 'WARNING', 'fg=black;bg=yellow', ' ', true, false);
         }
         return $sakeReturn === Command::SUCCESS;
     }
