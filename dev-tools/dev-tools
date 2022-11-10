@@ -35,6 +35,7 @@ $application->setDefinition(
 $application->addCommands([
     new Command\Env\Up(),
     new Command\Env\Down(),
+    new Command\Env\Attach(),
     new Command\Env\Info(),
     new Command\Env\PhpConfig(),
     new Command\Execute\Docker(),

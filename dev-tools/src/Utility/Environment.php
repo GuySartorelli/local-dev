@@ -16,13 +16,15 @@ final class Environment
 
     private string $name;
 
+    public const ATTACHED_ENV_FILE = '.dev-tools-env';
+
     /**
      * @throws LogicException if not a new environment and $path is not in a valid environment.
      */
     public function __construct(string $path, bool $isNew = false)
     {
-        $this->getEnvBasePath($path, $isNew);
-        $this->name = basename($this->baseDir);
+        $this->setBaseDir($path, $isNew);
+        $this->setName();
         $this->suffix = substr($this->name, -2);
     }
 
@@ -31,14 +33,14 @@ final class Environment
         return $this->baseDir;
     }
 
-    public function getComposerJson()
+    public function getComposerJson(bool $associative = false)
     {
         $filePath = Path::join($this->getWebRoot(), 'composer.json');
         $fileSystem = new Filesystem();
         if (!$fileSystem->exists($filePath)) {
             throw new FileNotFoundException(path: $filePath);
         }
-        return json_decode(file_get_contents($filePath), false);
+        return json_decode(file_get_contents($filePath), $associative);
     }
 
     public function setComposerJson(stdClass $content)
@@ -50,7 +52,7 @@ final class Environment
 
     public function getWebRoot(): string
     {
-        return Path::join($this->getBaseDir(), 'www');
+        return $this->isAttachedEnv() ? $this->getBaseDir() : Path::join($this->getBaseDir(), 'www');
     }
 
     public function getDockerDir(): string
@@ -84,7 +86,7 @@ final class Environment
         return "http://{$this->getHostName()}";
     }
 
-    private function getEnvBasePath(string $candidate, bool $isNew): void
+    private function setBaseDir(string $candidate, bool $isNew): void
     {
         if ($isNew) {
             $this->baseDir = $candidate;
@@ -104,6 +106,12 @@ final class Environment
         // Recursively check the proposed path and its parents for the requisite structure
         // Don't check root
         while ($candidate && !in_array($candidate, $stopAtDirs)) {
+            // environments created using the attach command will have a special .dev-tools-env file
+            if (file_exists(Path::join($candidate, self::ATTACHED_ENV_FILE))) {
+                $this->baseDir = $candidate;
+                return;
+            }
+
             // All environment directories end with an underscore and two digits (e.g. "_00")
             if (preg_match('/_(\d{2})$/', $candidate, $matches)) {
                 $suffix = $matches[1];
@@ -127,5 +135,24 @@ final class Environment
         }
 
         throw new LogicException("Environment path '$origDir' is not inside a valid environment.");
+    }
+
+    private function setName()
+    {
+        $this->name = $this->getAttachedEnvName() ?? basename($this->getBaseDir());
+    }
+
+    private function isAttachedEnv()
+    {
+        return file_exists(Path::join($this->getBaseDir(), self::ATTACHED_ENV_FILE));
+    }
+
+    private function getAttachedEnvName()
+    {
+        $path = Path::join($this->getBaseDir(), self::ATTACHED_ENV_FILE);
+        if (file_exists($path)) {
+            return file_get_contents($path);
+        }
+        return null;
     }
 }

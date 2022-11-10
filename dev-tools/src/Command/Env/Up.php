@@ -661,6 +661,7 @@ class Up extends BaseCommand
             'ipPrefix' => $ipPrefix,
             'database' => $input->getOption('db'),
             'dbVersion' => $input->getOption('db-version'),
+            'attached' => false,
         ];
 
         return $twig->render($template, $variables);

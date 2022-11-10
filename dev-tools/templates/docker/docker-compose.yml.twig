@@ -8,13 +8,13 @@ services:
     build: .
     restart: always
     volumes:
-      - ../www/:/var/www
-      - ../logs/:/var/log
+      - ../{% if not attached %}www/{% endif %}:/var/www
+      {% if attached %}# {% endif %}- ../logs/:/var/logs
       - ~/.cache/composer:/home/www-data/.cache/composer
     domainname: {{hostSuffix}}
     hostname: {{projectName}}
     environment:
-      APACHE_LOG_DIR: "/var/log/apache2"
+      APACHE_LOG_DIR: "{% if attached %}/var/www/logs/apache2{% else %}/var/logs/apache2{% endif %}"
     networks:
       mynet:
         ipv4_address: {{ipPrefix}}.50

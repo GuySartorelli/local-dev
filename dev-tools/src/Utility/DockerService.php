@@ -6,8 +6,11 @@ use InvalidArgumentException;
 use Symfony\Component\Console\Helper\DebugFormatterHelper;
 use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Helper\ProcessHelper;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Process\Process;
 
 final class DockerService
@@ -17,6 +20,8 @@ final class DockerService
     private ?ProcessHelper $processHelper;
 
     private ?ProcessOutputter $outputter;
+
+    private SymfonyStyle $io;
 
     public const CONTAINER_WEBSERVER = '_webserver';
 
@@ -28,6 +33,44 @@ final class DockerService
         $this->processHelper = new ProcessHelper();
         $this->processHelper->setHelperSet(new HelperSet([new DebugFormatterHelper()]));
         $this->outputter = new ProcessOutputter($output);
+        $this->io = new SymfonyStyle(new ArrayInput([]), $output);
+    }
+
+    /**
+     * Get an associative array of docker container statuses
+     *
+     * @return string[]
+     */
+    public function getContainersStatus()
+    {
+        $env = $this->environment;
+        $processHelper = $this->processHelper;
+        $io = $this->io;
+        $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
+        $cmd = [
+            'docker',
+            'compose',
+            'ps',
+            '--all',
+            '--format=json',
+        ];
+        $outputFormatter = new ProcessOutputter($output);
+        $process = $processHelper->run(
+            $output,
+            new Process($cmd, $env->getDockerDir()),
+            callback: [$outputFormatter, 'output']
+        );
+        if (!$process->isSuccessful()) {
+            $io->warning("Couldn't get status of docker containers.");
+            return null;
+        }
+
+        $containers = [];
+        foreach (json_decode($output->fetch(), true) as $container) {
+            $name = str_replace($env->getName() . '_', '', $container['Name']) . ' container';
+            $containers[$name] = $container['State'];
+        }
+        return $containers;
     }
 
     /**

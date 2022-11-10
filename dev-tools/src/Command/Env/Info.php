@@ -3,17 +3,14 @@
 namespace DevTools\Command\Env;
 
 use DevTools\Command\BaseCommand;
+use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use DevTools\Utility\PHPService;
-use DevTools\Utility\ProcessOutputter;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Process\Process;
 
 class Info extends BaseCommand
 {
@@ -32,7 +29,8 @@ class Info extends BaseCommand
         $env = $this->getVar('env');
 
         $phpService = new PHPService($env, $this->getVar('output'));
-        $containers = $this->getContainersStatus();
+        $dockerService = new DockerService($this->getVar('env'), $output);
+        $containers = $dockerService->getContainersStatus();
 
         $io->horizontalTable([
             'URL',
@@ -55,41 +53,6 @@ class Info extends BaseCommand
         ]]);
 
         return Command::SUCCESS;
-    }
-
-    private function getContainersStatus()
-    {
-        /** @var Environment $env */
-        $env = $this->getVar('env');
-        /** @var ProcessHelper $processHelper */
-        $processHelper = $this->getHelper('process');
-        /** @var SymfonyStyle $io */
-        $io = $this->getVar('io');
-        $output = new BufferedOutput(OutputInterface::VERBOSITY_VERBOSE);
-        $cmd = [
-            'docker',
-            'compose',
-            'ps',
-            '--all',
-            '--format=json',
-        ];
-        $outputFormatter = new ProcessOutputter($output);
-        $process = $processHelper->run(
-            $output,
-            new Process($cmd, $env->getDockerDir()),
-            callback: [$outputFormatter, 'output']
-        );
-        if (!$process->isSuccessful()) {
-            $io->warning("Couldn't get status of docker containers.");
-            return null;
-        }
-
-        $containers = [];
-        foreach (json_decode($output->fetch(), true) as $container) {
-            $name = str_replace($env->getName() . '_', '', $container['Name']) . ' container';
-            $containers[$name] = $container['State'];
-        }
-        return $containers;
     }
 
     /**
