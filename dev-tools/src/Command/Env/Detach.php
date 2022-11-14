@@ -17,13 +17,13 @@ use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
-class Down extends BaseCommand
+class Detach extends BaseCommand
 {
     use UsesPassword;
 
-    protected static $defaultName = 'env:down';
+    protected static $defaultName = 'env:detach';
 
-    protected static $defaultDescription = 'Completely tears down an environment that was created with the "up" command.';
+    protected static $defaultDescription = 'Detaches an environment that was created with the "attach" command.';
 
     protected static bool $notifyOnCompletion = true;
 
@@ -35,8 +35,8 @@ class Down extends BaseCommand
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
         parent::initialize($input, $output);
-        if ($this->getVar('env')->isAttachedEnv()) {
-            throw new LogicException('Cannot tear down attached environments. Run env:detach instead.');
+        if (!$this->getVar('env')->isAttachedEnv()) {
+            throw new LogicException('Cannot detach from fully constructed environments. Run env:down instead.');
         }
         $this->filesystem = new Filesystem();
         // Need password to update hosts - get that first so user can walk away while the rest processes.
@@ -65,12 +65,12 @@ class Down extends BaseCommand
             return $failureCode;
         }
 
-        // Delete environment directory
+        // Delete docker directory
         try {
-            $io->writeln(self::STEP_STYLE . 'Removing environment directory</>');
-            $this->filesystem->remove($env->getBaseDir());
+            $io->writeln(self::STEP_STYLE . 'Removing docker directory</>');
+            $this->filesystem->remove($env->getDockerDir());
         } catch (IOException $e) {
-            $io->error('Couldn\'t delete environment directory: ' . $e->getMessage());
+            $io->error('Couldn\'t delete docker directory: ' . $e->getMessage());
             return Command::FAILURE;
         }
 
@@ -84,7 +84,7 @@ class Down extends BaseCommand
             return $failureCode;
         }
 
-        $io->success("Env {$env->getName()} successfully destroyed.");
+        $io->success("Env {$env->getName()} successfully detached.");
         return Command::SUCCESS;
     }
 
@@ -144,15 +144,13 @@ class Down extends BaseCommand
      */
     protected function configure(): void
     {
-        $this->filesystem = new Filesystem();
-
-        $this->setAliases(['down']);
+        $this->setAliases(['detach']);
 
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
         $desc
-        Removes a project by pulling down the docker containers, network, and destroying the volumes,
-        deleting the directory in the project directory, removing the entry in the hosts file, etc.
+        Detaches from a project by pulling down the docker containers, network, and destroying the volumes,
+        deleting the docker directory in the project directory, removing the entry in the hosts file, etc.
         HELP);
         $this->addArgument(
             'env-path',

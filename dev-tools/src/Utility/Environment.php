@@ -86,6 +86,11 @@ final class Environment
         return "http://{$this->getHostName()}";
     }
 
+    public function isAttachedEnv()
+    {
+        return file_exists(Path::join($this->getBaseDir(), self::ATTACHED_ENV_FILE));
+    }
+
     private function setBaseDir(string $candidate, bool $isNew): void
     {
         if ($isNew) {
@@ -140,11 +145,6 @@ final class Environment
     private function setName()
     {
         $this->name = $this->getAttachedEnvName() ?? basename($this->getBaseDir());
-    }
-
-    private function isAttachedEnv()
-    {
-        return file_exists(Path::join($this->getBaseDir(), self::ATTACHED_ENV_FILE));
     }
 
     private function getAttachedEnvName()

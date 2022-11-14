@@ -3,7 +3,6 @@
 namespace DevTools\Command\Env;
 
 use Composer\Semver\Semver;
-use Composer\Semver\VersionParser;
 use DevTools\Command\BaseCommand;
 use DevTools\Command\UsesPassword;
 use DevTools\Utility\Config;
@@ -11,9 +10,6 @@ use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use DevTools\Utility\PHPService;
 use DevTools\Utility\ProcessOutputter;
-use Github\AuthMethod;
-use Github\Client as GithubClient;
-use InvalidArgumentException;
 use LogicException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -24,13 +20,11 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
-use Symfony\Component\Process\Process;
 use Twig\Environment as TwigEnvironment;
 use Twig\Loader\FilesystemLoader;
 
@@ -124,7 +118,7 @@ class Attach extends BaseCommand
         // Run dev/build
         $this->buildDatabase();
 
-        $io->success('Completed successfully.');
+        $io->success('Attached successfully.');
         $url = $environment->getBaseURL() . '/';
         $io->writeln(self::STEP_STYLE . "Navigate to <href=$url>$url</></>");
         return Command::SUCCESS;

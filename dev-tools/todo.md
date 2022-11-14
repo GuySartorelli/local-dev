@@ -1,7 +1,6 @@
 # Todo
 
-- Add a way to dettach an environment from an existing dir
-- Tidy up Attach and Up so there's no duplication of code there
+- Tidy up Attach/Up and Detach/Down so there's no duplication of code there
 - Add checking db type to info command
 - New command for database stuff
   - add postgres support
