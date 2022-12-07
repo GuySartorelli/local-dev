@@ -8,6 +8,7 @@ use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use LogicException;
+use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -35,6 +36,16 @@ class Down extends BaseCommand
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
         parent::initialize($input, $output);
+        if ($input->getArgument('env-path') === './') {
+            /** @var SymfonyStyle $io */
+            $io = $this->getVar('io');
+            /** @var Environment $env */
+            $env = $this->getVar('env');
+            $continue = $io->ask('You passed no arguments and are tearing down <options=bold>' . $env->getName() . '</> - do you wish to continue?');
+            if (!is_string($continue) || !preg_match('/^y(es)?$/i', $continue)) {
+                throw new RuntimeException('Opting not to tear down this environment.');
+            }
+        }
         if ($this->getVar('env')->isAttachedEnv()) {
             throw new LogicException('Cannot tear down attached environments. Run env:detach instead.');
         }
