@@ -94,10 +94,27 @@ RUN apt-get install -y php8.1-tidy
 RUN apt-get install -y php8.1-xdebug
 RUN apt-get install -y php8.1-zip
 
+RUN apt-get install -y libapache2-mod-php8.2
+RUN apt-get install -y php8.2
+RUN apt-get install -y php8.2-bcmath
+RUN apt-get install -y php8.2-cli
+RUN apt-get install -y php8.2-curl
+RUN apt-get install -y php8.2-dev
+RUN apt-get install -y php8.2-dom
+RUN apt-get install -y php8.2-gd
+RUN apt-get install -y php8.2-intl
+RUN apt-get install -y php8.2-ldap
+RUN apt-get install -y php8.2-mbstring
+RUN apt-get install -y php8.2-mysql
+RUN apt-get install -y php8.2-pgsql
+RUN apt-get install -y php8.2-tidy
+RUN apt-get install -y php8.2-xdebug
+RUN apt-get install -y php8.2-zip
+
 # Install other packages
 RUN apt-get install -y nano
 
-# Install WKHTMLTOPDF QT ptached
+# Install WKHTMLTOPDF QT ptached (not working for some reason)
 # RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
 # RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
 # RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
