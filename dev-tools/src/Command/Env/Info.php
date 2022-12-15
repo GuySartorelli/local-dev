@@ -38,7 +38,8 @@ class Info extends BaseCommand
             'DB Port',
             'Web IP',
             'XDebug',
-            'PHP Version',
+            'CLI PHP Version',
+            'Apache PHP Version',
             'Available PHP Versions',
             ...array_keys($containers),
         ], [[
@@ -47,7 +48,8 @@ class Info extends BaseCommand
             "33{$env->getSuffix()}",
             "{$env->getIpAddress()}",
             $phpService->debugIsEnabled() ? 'On' : 'Off',
-            $phpService->getCliPhpVersion(), // Assume Apache version is the same
+            $phpService->getCliPhpVersion(),
+            $phpService->getApachePhpVersion(),
             implode(', ', PHPService::getAvailableVersions()),
             ...array_values($containers),
         ]]);
