@@ -100,39 +100,53 @@ class PhpConfig extends BaseCommand
 
         $oldVersionCLI = $phpService->getCliPhpVersion();
         $oldVersionApache = $phpService->getApachePhpVersion();
-        $requiresRestart = false;
 
         if ($oldVersionCLI === $oldVersionApache && $oldVersionApache === $version) {
             $io->writeln(self::STEP_STYLE . "Already using version $version - skipping.</>");
             return false;
         }
 
+        $ret = false;
+
         if ($oldVersionCLI !== $version) {
             $io->writeln(self::STEP_STYLE . "Swapping CLI PHP from $oldVersionCLI to $version.</>");
-
-            $command = <<<EOL
-            rm /etc/alternatives/php && \\
-            ln -s /usr/bin/php{$version} /etc/alternatives/php
-            EOL;
+            $ret = $ret || $this->swapCliToVersion($version);
         }
 
         if ($oldVersionApache !== $version) {
             $io->writeln(self::STEP_STYLE . "Swapping Apache PHP from $oldVersionApache to $version.</>");
-
-            $command = <<<EOL
-            rm /etc/apache2/mods-enabled/php{$oldVersionApache}.conf && \\
-            rm /etc/apache2/mods-enabled/php{$oldVersionApache}.load && \\
-            ln -s /etc/apache2/mods-available/php$version.conf /etc/apache2/mods-enabled/php$version.conf && \\
-            ln -s /etc/apache2/mods-available/php$version.load /etc/apache2/mods-enabled/php$version.load
-            EOL;
-            $requiresRestart = true;
+            $ret = $ret || $this->swapApacheToVersion($oldVersionApache, $version);
         }
 
-        // Run the command
+        return $ret;
+    }
+
+    private function swapCliToVersion(string $toVersion)
+    {
+        $command = <<<EOL
+        rm /etc/alternatives/php && \\
+        ln -s /usr/bin/php{$toVersion} /etc/alternatives/php
+        EOL;
+
         $output = clone $this->getVar('output');
         $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         $suppressMessages = !$this->getVar('output')->isVeryVerbose();
-        return $this->runDockerCommand($command, $output, asRoot: true, requiresRestart: $requiresRestart, suppressMessages: $suppressMessages);
+        return $this->runDockerCommand($command, $output, asRoot: true, suppressMessages: $suppressMessages);
+    }
+
+    private function swapApacheToVersion(string $fromVersion, string $toVersion)
+    {
+        $command = <<<EOL
+        rm /etc/apache2/mods-enabled/php{$fromVersion}.conf && \\
+        rm /etc/apache2/mods-enabled/php{$fromVersion}.load && \\
+        ln -s /etc/apache2/mods-available/php$toVersion.conf /etc/apache2/mods-enabled/php$toVersion.conf && \\
+        ln -s /etc/apache2/mods-available/php$toVersion.load /etc/apache2/mods-enabled/php$toVersion.load
+        EOL;
+
+        $output = clone $this->getVar('output');
+        $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
+        $suppressMessages = !$this->getVar('output')->isVeryVerbose();
+        return $this->runDockerCommand($command, $output, asRoot: true, requiresRestart: true, suppressMessages: $suppressMessages);
     }
 
     protected function toggleDebug(): int|bool
