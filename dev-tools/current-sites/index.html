@@ -1,0 +1,45 @@
+<html>
+<body>
+
+<div id="tableHolder"></div>
+
+<script src="current-sites.js"></script>
+<script>
+window.addEventListener('load', () => {
+  // Make table
+  const table = document.createElement('table');
+  const tbody = table.createTBody();
+  document.getElementById('tableHolder').appendChild(table);
+  let headersComplete = false;
+  // Go through each site in the data
+  for (const site of data) {
+    // Prepare header row
+    let headerRow;
+    if (!headersComplete) {
+      headerRow = table.createTHead().insertRow();
+    }
+    const row = tbody.insertRow();
+
+    // Go through each key/value pair
+    for (const key in site) {
+      // Add header cell
+      if (!headersComplete) {
+        const headCell = document.createElement('th');
+        headerRow.appendChild(headCell);
+        headCell.innerHTML = key;
+      }
+
+      // Add data value cell
+      const cell = row.insertCell();
+      let val = site[key];
+      if (key === 'URL' || key === 'Mailhog') {
+        val = `<a href="${val}">Home</a>`;
+      }
+      cell.innerHTML = val;
+    }
+    headersComplete = true;
+  }
+});
+</script>
+</body>
+</html>
