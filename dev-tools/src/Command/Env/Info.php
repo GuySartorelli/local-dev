@@ -31,6 +31,7 @@ class Info extends BaseCommand
         $phpService = new PHPService($env, $this->getVar('output'));
         $dockerService = new DockerService($this->getVar('env'), $output);
         $containers = $dockerService->getContainersStatus();
+        $canCheckContainer = $containers['webserver container'] === 'running';
 
         $io->horizontalTable([
             'URL',
@@ -47,9 +48,9 @@ class Info extends BaseCommand
             "<href={$env->getBaseURL()}:8025>{$env->getBaseURL()}:8025</>",
             "33{$env->getSuffix()}",
             "{$env->getIpAddress()}",
-            $phpService->debugIsEnabled() ? 'On' : 'Off',
-            $phpService->getCliPhpVersion(),
-            $phpService->getApachePhpVersion(),
+            $canCheckContainer ? ($phpService->debugIsEnabled() ? 'On' : 'Off') : null,
+            $canCheckContainer ? $phpService->getCliPhpVersion() : null,
+            $canCheckContainer ? $phpService->getApachePhpVersion(): null,
             implode(', ', PHPService::getAvailableVersions()),
             ...array_values($containers),
         ]]);

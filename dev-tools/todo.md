@@ -3,7 +3,6 @@
 - BUGS
   - detach command doesn't fully detach the env (leaves behind `.dev-tools-env` at least)
   - Sometimes down and detach leave behind a `..8Vf` or similar folder? What's that about?
-  - Info command tries to get info from containers even if they're not running
 
 - Tidy up Attach/Up and Detach/Down so there's no duplication of code there
 - Add checking db type to info command
