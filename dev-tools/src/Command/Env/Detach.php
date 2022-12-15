@@ -74,6 +74,9 @@ class Detach extends BaseCommand
             return Command::FAILURE;
         }
 
+        // Remove env file
+        $this->filesystem->remove(Path::join($env->getBaseDir(), Environment::ATTACHED_ENV_FILE));
+
         // Release suffix now that we aren't using it for the directory.
         // This way if we can't remove the hosts entry we can still re-use this suffix.
         Config::releaseSuffix($env->getSuffix());
