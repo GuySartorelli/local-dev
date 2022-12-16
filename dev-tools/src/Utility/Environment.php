@@ -16,6 +16,8 @@ final class Environment
 
     private string $name;
 
+    private ComposerJsonService $composerService;
+
     public const ATTACHED_ENV_FILE = '.dev-tools-env';
 
     /**
@@ -26,6 +28,7 @@ final class Environment
         $this->setBaseDir($path, $isNew);
         $this->setName();
         $this->suffix = substr($this->name, -2);
+        $this->composerService = new ComposerJsonService($this->getWebRoot());
     }
 
     public function getBaseDir(): string
@@ -35,19 +38,14 @@ final class Environment
 
     public function getComposerJson(bool $associative = false)
     {
-        $filePath = Path::join($this->getWebRoot(), 'composer.json');
-        $fileSystem = new Filesystem();
-        if (!$fileSystem->exists($filePath)) {
-            throw new FileNotFoundException(path: $filePath);
-        }
-        return json_decode(file_get_contents($filePath), $associative);
+        // TODO: Use the service directly instead of implementing here
+        return $this->composerService->getComposerJson($associative);
     }
 
-    public function setComposerJson(stdClass $content)
+    public function setComposerJson(stdClass|array $content)
     {
-        $filePath = Path::join($this->getWebRoot(), 'composer.json');
-        $fileSystem = new Filesystem();
-        $fileSystem->dumpFile($filePath, json_encode($content, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES));
+        // TODO: Use the service directly instead of implementing here
+        return $this->composerService->setComposerJson($content);
     }
 
     public function getWebRoot(): string

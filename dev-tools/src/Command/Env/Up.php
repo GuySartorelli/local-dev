@@ -6,14 +6,13 @@ use Composer\Semver\Semver;
 use Composer\Semver\VersionParser;
 use DevTools\Command\BaseCommand;
 use DevTools\Command\UsesPassword;
+use DevTools\Utility\ComposerJsonService;
 use DevTools\Utility\Config;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
+use DevTools\Utility\GitHubService;
 use DevTools\Utility\PHPService;
 use DevTools\Utility\ProcessOutputter;
-use Github\AuthMethod;
-use Github\Client as GithubClient;
-use InvalidArgumentException;
 use LogicException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -79,39 +78,12 @@ class Up extends BaseCommand
             $this->getVar('io')->warning('Composer --no-install has been set. Cannot checkout PRs.');
             $this->setVar('prs', []);
         } else {
-            $this->initializePRDetails($input->getOption('pr'));
+            $this->setVar('prs', GitHubService::getPullRequestDetails($input->getOption('pr')));
         }
         $twigLoader = new FilesystemLoader(Config::getTemplateDir());
         $this->setVar('twig', new TwigEnvironment($twigLoader));
         // Need password to update hosts - get that first so user can walk away while the rest processes.
         $this->setVar('password', $this->getPassword());
-    }
-
-    private function initializePRDetails(array $rawPRs)
-    {
-        if (empty($rawPRs)) {
-            $this->setVar('prs', []);
-            return;
-        }
-        $client = new GithubClient();
-        if ($token = Config::getEnv('DT_GITHUB_TOKEN')) {
-            $client->authenticate($token, AuthMethod::ACCESS_TOKEN);
-        }
-        $prs = [];
-        foreach ($rawPRs as $rawPR) {
-            $parsed = $this->parsePr($rawPR);
-            $prDetails = $client->pullRequest()->show($parsed['org'], $parsed['repo'], $parsed['pr']);
-            $prs[$rawPR] = [
-                'details' => array_merge($parsed, [
-                    'from-org' => $prDetails['head']['user']['login'],
-                    'remote' => $prDetails['head']['repo']['ssh_url'],
-                    'prBranch' => $prDetails['head']['ref'],
-                    'baseBranch' => $prDetails['base']['ref'],
-                ]),
-                'composerName' => $this->getComposerNameForPR($client, $parsed),
-            ];
-        }
-        $this->setVar('prs', $prs);
     }
 
     /**
@@ -471,6 +443,8 @@ class Up extends BaseCommand
 
     protected function handlePRs(): int|bool
     {
+        /** @var Environment $env */
+        $env = $this->getVar('env');
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
         /** @var InputInterface $input */
@@ -482,7 +456,10 @@ class Up extends BaseCommand
 
         if ($input->getOption('pr-has-deps')) {
             // Add prs to composer.json
-            $this->addPRsToComposer($prs);
+            $io->writeln(self::STEP_STYLE . 'Adding PRs to composer.json</>');
+            $composerService = new ComposerJsonService($env->getBaseDir());
+            $composerService->addForks($prs);
+            $composerService->addForkedDeps($prs);
 
             // Run composer install
             $io->writeln(self::STEP_STYLE . 'Running composer install now that dependencies have been defined</>');
@@ -498,34 +475,6 @@ class Up extends BaseCommand
         return $this->checkoutPRs($prs);
     }
 
-    protected function addPRsToComposer(array $prs): void
-    {
-        /** @var SymfonyStyle $io */
-        $io = $this->getVar('io');
-        /** @var Environment $environment */
-        $environment = $this->getVar('env');
-        $json = $environment->getComposerJson();
-        $parser = new VersionParser();
-        foreach ($prs as $pr) {
-            $io->writeln(self::STEP_STYLE . 'Adding PR for ' . $pr['composerName'] . ' to composer.json dependencies</>');
-            $details = $pr['details'];
-            // Get constraint with alias
-            if (isset($json->require->{$pr['composerName']})) {
-                $alias = $parser->parseConstraints($json->require->{$pr['composerName']})->getUpperBound()->getVersion();
-            } else {
-                $alias = $parser->normalizeBranch($details['baseBranch']);
-            }
-            $constraint = $parser->normalizeBranch($details['prBranch']) . ' as ' . $alias;
-            // Set dependency and repository info in composer.json
-            $json->require->{$pr['composerName']} = $constraint;
-            $json->repositories[] = json_decode(json_encode([
-                'type' => 'vcs',
-                'url' => $details['remote'],
-            ], JSON_FORCE_OBJECT), false);
-        }
-        $environment->setComposerJson($json);
-    }
-
     protected function checkoutPRs(array $prs): int|bool
     {
         /** @var SymfonyStyle $io */
@@ -534,17 +483,16 @@ class Up extends BaseCommand
         $environment = $this->getVar('env');
         $originalDir = getcwd();
         $returnVal = false;
-        foreach ($prs as $pr) {
-            $io->writeln(self::STEP_STYLE . 'Setting up PR for ' . $pr['composerName'] . '</>');
-            $details = $pr['details'];
+        foreach ($prs as $composerName => $details) {
+            $io->writeln(self::STEP_STYLE . 'Setting up PR for ' . $composerName . '</>');
             $io->writeln(self::STEP_STYLE . 'Setting remote ' . $details['remote'] . ' as "pr" and checking out branch ' . $details['prBranch'] . '</>');
-            $prPath = Path::join($environment->getWebRoot(), 'vendor', $pr['composerName']);
+            $prPath = Path::join($environment->getWebRoot(), 'vendor', $composerName);
             if (!$this->filesystem->exists($prPath)) {
                 // Try composer require-ing it - and if that fails, toss out a warning about it and move on.
-                $io->writeln(self::STEP_STYLE . $pr['composerName'] . ' is not yet added as a dependency - requiring it.</>');
-                $result = $this->runDockerCommand('composer require --prefer-source ' . $pr['composerName'], $this->getVar('output'), suppressMessages: !$io->isVerbose());
+                $io->writeln(self::STEP_STYLE . $composerName . ' is not yet added as a dependency - requiring it.</>');
+                $result = $this->runDockerCommand('composer require --prefer-source ' . $composerName, $this->getVar('output'), suppressMessages: !$io->isVerbose());
                 if ($result) {
-                    $io->warning('Could not check out PR for ' . $pr['composerName'] . ' - please check out that PR manually.');
+                    $io->warning('Could not check out PR for ' . $composerName . ' - please check out that PR manually.');
                     $returnVal = Command::FAILURE;
                     continue;
                 }
@@ -703,26 +651,6 @@ class Up extends BaseCommand
         $constraint = preg_replace('/^(dev-|v(?=\d))|-dev|(#|@).*?$/', '', $input->getOption('constraint'));
         $constraint = preg_replace($invalidCharsRegex, '-', trim($constraint, '~^'));
         return $recipe . '_' . $constraint;
-    }
-
-    /**
-     * Parse a URL or github-shorthand PR reference into an array containing the org, repo, and pr components.
-     */
-    private function parsePr(string $prRaw): array
-    {
-        if (!preg_match('@(?<org>[a-zA-Z0-9_-]*)/(?<repo>[a-zA-Z0-9_-]*)(/pull/|#)(?<pr>[0-9]*)@', $prRaw, $matches)) {
-            throw new InvalidArgumentException("'$prRaw' is not a valid github PR reference.");
-        }
-        return $matches;
-    }
-
-    /**
-     * Get the composer name of a project from the composer.json of a repo.
-     */
-    private function getComposerNameForPR(GithubClient $client, array $pr): string
-    {
-        $composerJson = $client->repo()->contents()->download($pr['org'], $pr['repo'], 'composer.json');
-        return json_decode($composerJson, true)['name'];
     }
 
     /**

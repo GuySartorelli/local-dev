@@ -4,7 +4,10 @@
   - Sometimes down and detach leave behind a `..8Vf` or similar folder? What's that about?
     - Might be related to detaching or tearing down an env we're still in
 
+- Go through and do all the TODOs from TODO comments in code
+- For adding forks for PRs, add them as dev deps if they're already dev deps
 - Tidy up Attach/Up and Detach/Down so there's no duplication of code there
+- Use ComposerJsonService anywhere that's touching composer.json at all
 - Add checking db type to info command
 - New command for database stuff
   - add postgres support
@@ -29,4 +32,5 @@
 - Stop relying on 000-default.conf
   - Have a new placeholder 000-default.conf which just outputs some "this is the default page" message
   - Update what is current docker_apache_default to be a specific virtualhost for the specific site
+- SSL (https) support
 - ??
