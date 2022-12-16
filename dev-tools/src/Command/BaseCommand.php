@@ -2,6 +2,7 @@
 
 namespace DevTools\Command;
 
+use BadMethodCallException;
 use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use InvalidArgumentException;
@@ -21,6 +22,11 @@ abstract class BaseCommand extends Command
     protected bool $isSubCommand = false;
 
     /**
+     * If true, sets a `env` var
+     */
+    protected static bool $hasEnvironment = true;
+
+    /**
      * If true, notifies when a command has finished.
      */
     protected static bool $notifyOnCompletion = false;
@@ -38,7 +44,9 @@ abstract class BaseCommand extends Command
             $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL);
         }
         $this->resetVars();
-        $this->initiateEnv($input);
+        if (static::$hasEnvironment) {
+            $this->initiateEnv($input);
+        }
         $this->setVar('input', $input);
         $this->setVar('output', $output);
         $this->setVar('io', new SymfonyStyle($input, $output));
@@ -129,6 +137,10 @@ abstract class BaseCommand extends Command
         string $container = DockerService::CONTAINER_WEBSERVER
     ): string|int|bool
     {
+        if (!static::$hasEnvironment) {
+            throw new BadMethodCallException('runDockerCommand() is not set up to work without an environment');
+        }
+
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
         if (!$output) {
