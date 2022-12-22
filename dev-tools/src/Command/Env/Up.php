@@ -13,6 +13,8 @@ use DevTools\Utility\Environment;
 use DevTools\Utility\GitHubService;
 use DevTools\Utility\PHPService;
 use DevTools\Utility\ProcessOutputter;
+use Gitonomy\Git\Exception\ProcessException;
+use Gitonomy\Git\Repository;
 use LogicException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -481,7 +483,6 @@ class Up extends BaseCommand
         $io = $this->getVar('io');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
-        $originalDir = getcwd();
         $returnVal = false;
         foreach ($prs as $composerName => $details) {
             $io->writeln(self::STEP_STYLE . 'Setting up PR for ' . $composerName . '</>');
@@ -492,48 +493,40 @@ class Up extends BaseCommand
                 $io->writeln(self::STEP_STYLE . $composerName . ' is not yet added as a dependency - requiring it.</>');
                 $result = $this->runDockerCommand('composer require --prefer-source ' . $composerName, $this->getVar('output'), suppressMessages: !$io->isVerbose());
                 if ($result) {
-                    $io->warning('Could not check out PR for ' . $composerName . ' - please check out that PR manually.');
-                    $returnVal = Command::FAILURE;
+                    $this->failCheckout($io, $returnVal);
                     continue;
                 }
             }
-            chdir($prPath);
-            $commands = [
-                // Add all our normal remotes (just in case) and fetch
-                ['git-set-remotes'],
-                // Add the PR remote (if this is a security or creative-commoners PR it will override that remote)
-                [
-                    'git',
-                    'remote',
-                    'add',
-                    'pr',
-                    $details['remote'],
-                ],
-                // Fetch the PR remote
-                [
-                    'git',
-                    'fetch',
-                    'pr',
-                ],
-                // Checkout the PR branch
-                [
-                    'git',
-                    'checkout',
-                    '--track',
-                    'pr/' . $details['prBranch'],
-                ],
+
+            $subCommand = $this->getApplication()->find('git-set-remotes');
+            $args = [
+                'env-path' => $prPath,
+                '--no-fetch',
+                '--no-include-security',
             ];
-            foreach ($commands as $command) {
-                if ($io->isVerbose()) {
-                    $io->writeln(self::STEP_STYLE . 'Running command: ' . implode(' ', $command) . '</>');
-                }
-                $this->outputter->startCommand();
-                $this->processHelper->run(new NullOutput(), new Process($command), callback: [$this->outputter, 'output']);
-                $this->outputter->endCommand();
+            $subCommandReturn = $subCommand->run(new ArrayInput($args), $this->getVar('output'));
+            if ($subCommandReturn !== Command::SUCCESS) {
+                $this->failCheckout($io, $returnVal);
+                continue;
             }
-            chdir($originalDir ?: $environment->getBaseDir());
+
+            try {
+                $gitRepo = new Repository($prPath);
+                $gitRepo->run('remote', ['add', 'pr', $details['pr']]);
+                $gitRepo->run('fetch', ['--all']);
+                $gitRepo->getWorkingCopy()->checkout('pr/' . $details['prBranch']);
+            } catch (ProcessException $e) {
+                $this->failCheckout($io, $returnVal);
+                continue;
+            }
         }
         return $returnVal;
+    }
+
+    private function failCheckout(SymfonyStyle $io, mixed &$returnVal): void
+    {
+        $io->warning('Could not check out PR for ' . $composerName . ' - please check out that PR manually.');
+        $returnVal = Command::FAILURE;
     }
 
     protected function updateHosts(): int|bool
