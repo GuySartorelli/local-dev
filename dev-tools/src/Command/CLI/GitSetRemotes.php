@@ -6,6 +6,7 @@ use DevTools\Command\BaseCommand;
 use Gitonomy\Git\Repository;
 use LogicException;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -30,7 +31,7 @@ class GitSetRemotes extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
-        $gitRepo = new Repository(Path::canonicalize(getcwd() ?: './'));
+        $gitRepo = new Repository(Path::canonicalize($input->getArgument('env-path')));
         $ccAccount = 'git@github.com:creative-commoners/';
         $securityAccount = 'git@github.com:silverstripe-security/';
         $prefixAndOrgRegex = '#^(?>git@github\.com:|https://github\.com/).*/#';
@@ -44,11 +45,15 @@ class GitSetRemotes extends BaseCommand
             throw new LogicException("Origin $originUrl does not appear to be valid");
         }
 
-        // Add cc and security remotes
+        // Add cc remote
         $ccRemote = preg_replace($prefixAndOrgRegex, $ccAccount, $originUrl);
-        $securityRemote = preg_replace($prefixAndOrgRegex, $securityAccount, $originUrl);
         $gitRepo->run('remote', ['add', 'cc', $ccRemote]);
-        $gitRepo->run('remote', ['add', 'security', $securityRemote]);
+
+        // Add security remote
+        if ($input->getOption('include-security')) {
+            $securityRemote = preg_replace($prefixAndOrgRegex, $securityAccount, $originUrl);
+            $gitRepo->run('remote', ['add', 'security', $securityRemote]);
+        }
 
         // Rename origin
         if ($input->getOption('rename-origin')) {
@@ -77,11 +82,24 @@ class GitSetRemotes extends BaseCommand
 
         $desc = static::$defaultDescription;
         $this->setHelp($desc);
+        $this->addArgument(
+            'env-path',
+            InputArgument::OPTIONAL,
+            'The full path to the directory of the environment.',
+            './'
+        );
         $this->addOption(
             'rename-origin',
             null,
             InputOption::VALUE_NEGATABLE,
             'Rename the "origin" remote to "orig"',
+            true
+        );
+        $this->addOption(
+            'include-security',
+            null,
+            InputOption::VALUE_NEGATABLE,
+            'Include the "Security" remote',
             true
         );
         $this->addOption(
