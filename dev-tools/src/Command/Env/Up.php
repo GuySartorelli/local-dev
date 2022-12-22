@@ -3,7 +3,6 @@
 namespace DevTools\Command\Env;
 
 use Composer\Semver\Semver;
-use Composer\Semver\VersionParser;
 use DevTools\Command\BaseCommand;
 use DevTools\Command\UsesPassword;
 use DevTools\Utility\ComposerJsonService;
@@ -12,7 +11,6 @@ use DevTools\Utility\DockerService;
 use DevTools\Utility\Environment;
 use DevTools\Utility\GitHubService;
 use DevTools\Utility\PHPService;
-use DevTools\Utility\ProcessOutputter;
 use Gitonomy\Git\Exception\ProcessException;
 use Gitonomy\Git\Repository;
 use LogicException;
@@ -20,18 +18,15 @@ use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
-use Symfony\Component\Process\Process;
 use Twig\Environment as TwigEnvironment;
 use Twig\Loader\FilesystemLoader;
 
@@ -60,10 +55,6 @@ class Up extends BaseCommand
 
     protected Filesystem $filesystem;
 
-    protected ProcessHelper $processHelper;
-
-    protected ProcessOutputter $outputter;
-
     private array $composerArgs = [];
 
     /**
@@ -73,8 +64,6 @@ class Up extends BaseCommand
     {
         parent::initialize($input, $output);
         $this->filesystem = new Filesystem();
-        $this->processHelper = $this->getHelper('process');
-        $this->outputter = new ProcessOutputter($output);
         $this->normaliseRecipe();
         if (str_contains($input->getOption('composer-args') ?? '', '--no-install') && !empty($input->getOption('pr'))) {
             $this->getVar('io')->warning('Composer --no-install has been set. Cannot checkout PRs.');
