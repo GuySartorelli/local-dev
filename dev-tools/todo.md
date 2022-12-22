@@ -3,9 +3,10 @@
 - BUGS
   - Sometimes down and detach leave behind a `..8Vf` or similar folder? What's that about?
     - Might be related to detaching or tearing down an env we're still in
+  - If adding a PR fork for something that's a dev dep, we'll get an error.
+    - Make it add the forked dep as a dev dep if it's already there as one.
 
 - Go through and do all the TODOs from TODO comments in code
-- For adding forks for PRs, add them as dev deps if they're already dev deps
 - Tidy up Attach/Up and Detach/Down so there's no duplication of code there
 - Use ComposerJsonService anywhere that's touching composer.json at all
 - Add checking db type to info command

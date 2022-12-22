@@ -429,8 +429,9 @@ class Attach extends BaseCommand
         HELP);
         $this->addArgument(
             'project-path',
-            InputArgument::REQUIRED,
-            'The path of the project to attach the environment to.'
+            InputArgument::OPTIONAL,
+            'The path of the project to attach the environment to.',
+            './'
         );
         $this->addOption(
             'php-version',
