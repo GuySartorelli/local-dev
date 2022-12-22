@@ -5,10 +5,8 @@ namespace DevTools\Command\CLI;
 use DevTools\Command\BaseCommand;
 use DevTools\Utility\ComposerJsonService;
 use DevTools\Utility\GitHubService;
-use DevTools\Utility\ProcessOutputter;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -23,10 +21,6 @@ class AddComposerPullRequest extends BaseCommand
 
     protected static bool $hasEnvironment = false;
 
-    protected ProcessHelper $processHelper;
-
-    protected ProcessOutputter $outputter;
-
     private ComposerJsonService $composerService;
 
     /**
@@ -35,8 +29,6 @@ class AddComposerPullRequest extends BaseCommand
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
         parent::initialize($input, $output);
-        $this->processHelper = $this->getHelper('process');
-        $this->outputter = new ProcessOutputter($output);
         $fileSystem = new Filesystem();
 
         if (!$fileSystem->exists('composer.json')) {
