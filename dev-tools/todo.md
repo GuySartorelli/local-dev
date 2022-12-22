@@ -20,7 +20,6 @@
   - e.g. interactive "the PR you want is for x.y, but you're installing a.b. Continue installing? Your PR won't be checked out, you'll have to do that manually."
 - Set up a composer plugin or similar that does git-set-remotes on everything during install, and runs `yarn install` on admin possibly. Could even yarn install and yarn dev on everything.
 - Git commands
-  - Set origins (make git-set-remotes a command here instead)
   - Create me a new PR branch
     - "pulls/$CURRENT_BRANCH/$DESCRIPTION"
   - Push the current PR branch
