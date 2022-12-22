@@ -34,6 +34,7 @@ $application->setDefinition(
 // Add custom commands
 $application->addCommands([
     new Command\CLI\AddComposerPullRequest(),
+    new Command\CLI\GitSetRemotes(),
     new Command\Env\Up(),
     new Command\Env\Down(),
     new Command\Env\Attach(),
