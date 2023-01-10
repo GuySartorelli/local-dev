@@ -482,7 +482,7 @@ class Up extends BaseCommand
                 $io->writeln(self::STEP_STYLE . $composerName . ' is not yet added as a dependency - requiring it.</>');
                 $result = $this->runDockerCommand('composer require --prefer-source ' . $composerName, $this->getVar('output'), suppressMessages: !$io->isVerbose());
                 if ($result) {
-                    $this->failCheckout($io, $returnVal);
+                    $this->failCheckout($io, $composerName, $returnVal);
                     continue;
                 }
             }
@@ -495,24 +495,24 @@ class Up extends BaseCommand
             ];
             $subCommandReturn = $subCommand->run(new ArrayInput($args), $this->getVar('output'));
             if ($subCommandReturn !== Command::SUCCESS) {
-                $this->failCheckout($io, $returnVal);
+                $this->failCheckout($io, $composerName, $returnVal);
                 continue;
             }
 
             try {
                 $gitRepo = new Repository($prPath);
-                $gitRepo->run('remote', ['add', 'pr', $details['pr']]);
+                $gitRepo->run('remote', ['add', 'pr', $details['remote']]);
                 $gitRepo->run('fetch', ['--all']);
                 $gitRepo->getWorkingCopy()->checkout('pr/' . $details['prBranch']);
             } catch (ProcessException $e) {
-                $this->failCheckout($io, $returnVal);
+                $this->failCheckout($io, $composerName, $returnVal);
                 continue;
             }
         }
         return $returnVal;
     }
 
-    private function failCheckout(SymfonyStyle $io, mixed &$returnVal): void
+    private function failCheckout(SymfonyStyle $io, string $composerName, mixed &$returnVal): void
     {
         $io->warning('Could not check out PR for ' . $composerName . ' - please check out that PR manually.');
         $returnVal = Command::FAILURE;
