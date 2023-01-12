@@ -107,7 +107,7 @@ class GitSetRemotes extends BaseCommand
             null,
             InputOption::VALUE_NEGATABLE,
             'Run git fetch after defining remotes',
-            true
+            false
         );
     }
 }
