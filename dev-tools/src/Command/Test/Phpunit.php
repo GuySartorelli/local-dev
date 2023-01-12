@@ -82,7 +82,6 @@ class Phpunit extends BaseCommand
                 return $searchDir;
             }
         }
-        var_dump('need to find file');
 
         // We need to find the file for this test class. We'll assume PSR-4 compliance.
         // Recursively check everything from the search dir down until we either find it or fail to find it
