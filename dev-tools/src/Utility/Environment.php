@@ -120,7 +120,7 @@ final class Environment
                 $suffix = $matches[1];
                 // Check that the 'www', 'logs', and 'dockerXX' directories are all present.
                 $found = 0;
-                foreach(scandir($candidate) as $toCheck) {
+                foreach (scandir($candidate) as $toCheck) {
                     if (
                         preg_match("/^(www|logs|docker-$suffix)$/", $toCheck)
                         && is_dir(Path::join($candidate, $toCheck))

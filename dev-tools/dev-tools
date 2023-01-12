@@ -44,6 +44,7 @@ $application->addCommands([
     new Command\Execute\Docker(),
     new Command\Execute\Sake(),
     new Command\Test\Behat(),
+    new Command\Test\Phpunit(),
     new Command\Database\Dump(),
 ]);
 
