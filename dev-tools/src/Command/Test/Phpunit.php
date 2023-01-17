@@ -91,6 +91,10 @@ class Phpunit extends BaseCommand
             $candidate = array_shift($candidates);
             $checked[$candidate] = null;
             foreach (scandir($candidate) as $toCheck) {
+                if ($toCheck === '.' || $toCheck === '..') {
+                    continue;
+                }
+
                 $currentPath = Path::join($candidate, $toCheck);
 
                 // If this file is the right file, we found it!
