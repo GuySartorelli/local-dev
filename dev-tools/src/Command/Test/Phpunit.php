@@ -172,7 +172,7 @@ class Phpunit extends BaseCommand
         );
         $this->addOption(
             'test-method',
-            null,
+            't',
             InputOption::VALUE_OPTIONAL,
             'Run specific test method(s).'
         );
