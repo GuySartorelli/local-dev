@@ -35,6 +35,7 @@ class Info extends BaseCommand
 
         $io->horizontalTable([
             'URL',
+            'CMS URL',
             'Mailhog',
             'DB Port',
             'Web IP',
@@ -45,6 +46,7 @@ class Info extends BaseCommand
             ...array_keys($containers),
         ], [[
             "<href={$env->getBaseURL()}/>{$env->getBaseURL()}/</>",
+            "<href={$env->getBaseURL()}/admin>{$env->getBaseURL()}/admin</>",
             "<href={$env->getBaseURL()}:8025>{$env->getBaseURL()}:8025</>",
             "33{$env->getSuffix()}",
             "{$env->getIpAddress()}",
