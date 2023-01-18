@@ -71,7 +71,8 @@ class Behat extends BaseCommand
         }
         $failureCode = $this->runDockerCommand(
             "$(chromedriver --log-path=artifacts/chromedriver.log --log-level=INFO > /dev/null 2>&1 &) && vendor/bin/behat $suites $tags",
-            $this->getVar('output')
+            $this->getVar('output'),
+            interactive: true
         );
         if ($failureCode) {
             return $failureCode;
