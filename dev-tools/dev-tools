@@ -5,7 +5,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 use DevTools\Command;
 use DevTools\Utility\Config;
-use Symfony\Component\Console\Application;
+use DevTools\App\Application;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
