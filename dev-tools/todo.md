@@ -7,6 +7,8 @@
     - Make it add the forked dep as a dev dep if it's already there as one.
 
 - Go through and do all the TODOs from TODO comments in code
+- Hijack the help command to document the shortcuts
+  - and then remove the note about them from the readme
 - Tidy up Attach/Up and Detach/Down so there's no duplication of code there
 - Use ComposerJsonService anywhere that's touching composer.json at all
 - Add checking db type to info command

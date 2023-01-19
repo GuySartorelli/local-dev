@@ -12,6 +12,9 @@
 - Use `git-set-remotes` to automatically add remotes for silverstripe forks.
   This will probably eventually be replaced with a dev-tools command.
 
+### Shortcuts
+There are some (currently undocumented) shortcuts for common tasks such as running composer commands or dev/build. Check out `src/App/Application.php` to see what those are.
+
 ## Development
 
 ### PHP Versions
