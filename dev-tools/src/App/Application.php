@@ -16,14 +16,14 @@ class Application extends ConsoleApplication
         if ($input instanceof ArgvInput) {
             $command = $input->getFirstArgument();
             switch ($command) {
+                case 'composer':
+                    $this->addCommandFirst($input, 'docker');
+                    break;
                 case 'dev/build':
                     $this->addCommandFirst($input, 'sake');
                     break;
                 case 'flush':
                     $this->setArgTokens($input, ['sake', 'dev', 'flush=1']);
-                    break;
-                case 'composer':
-                    $this->addCommandFirst($input, 'docker');
                     break;
             }
         }
