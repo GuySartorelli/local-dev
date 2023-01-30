@@ -6,6 +6,7 @@
   - If adding a PR fork for something that's a dev dep, we'll get an error.
     - Make it add the forked dep as a dev dep if it's already there as one.
 
+- Replace "nohup" and/or "> /dev/null 2>&1 &" with docker `-d` (detached mode) which will keep it running in the bg
 - Go through and do all the TODOs from TODO comments in code
 - Hijack the help command to document the shortcuts
   - and then remove the note about them from the readme
