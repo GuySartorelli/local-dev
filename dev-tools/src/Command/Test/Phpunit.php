@@ -83,6 +83,8 @@ class Phpunit extends BaseCommand
             }
         }
 
+        // TODO: Make (or reuse an existing) recursive function instead of duplicating logic below and in getModuleDir
+
         // We need to find the file for this test class. We'll assume PSR-4 compliance.
         // Recursively check everything from the search dir down until we either find it or fail to find it
         $candidates = [Path::makeAbsolute($searchDir, $env->getWebRoot())];
@@ -121,18 +123,34 @@ class Phpunit extends BaseCommand
         if (str_contains($module, '/')) {
             return Path::join($vendorDir, $module);
         } else {
+            $checked = [];
             // Look at all the org dirs in the vendor directory
             foreach (scandir($vendorDirAbsolute) as $orgDir) {
+                if ($orgDir === '.' || $orgDir === '..') {
+                    continue;
+                }
+
                 $currentPath = Path::join($vendorDirAbsolute, $orgDir);
-                if (is_dir($currentPath)) {
+
+                if (is_dir($currentPath) && !array_key_exists($currentPath, $checked)) {
                     // Look at all repo dirs in each organisation directory
-                    foreach (scandir($vendorDirAbsolute) as $repoDir) {
-                        if ($repoDir === $module && is_dir(Path::join($currentPath, $repoDir))) {
-                            // Found the correct module (assuming there aren't duplicate module names across orgs)
-                            return Path::join($vendorDir, $orgDir, $vendorDir);
+                    foreach (scandir($currentPath) as $repoDir) {
+                        if ($repoDir === '.' || $repoDir === '..') {
+                            continue;
                         }
+
+                        $repoPath = Path::join($currentPath, $repoDir);
+
+                        if ($repoDir === $module && is_dir($repoPath) && !array_key_exists($repoPath, $checked)) {
+                            // Found the correct module (assuming there aren't duplicate module names across orgs)
+                            return Path::join($vendorDir, $orgDir, $repoDir);
+                        }
+
+                        $checked[$repoPath] = true;
                     }
                 }
+
+                $checked[$currentPath] = true;
             }
         }
         // If we get to this point, we weren't able to find that module.
