@@ -126,8 +126,8 @@ class Up extends BaseCommand
         $this->buildDatabase();
 
         $io->success('Completed successfully.');
-        $url = $environment->getBaseURL() . '/';
-        $io->writeln(self::STEP_STYLE . "Navigate to <href=$url/admin>$url/admin</></>");
+        $url = $environment->getBaseURL() . '/admin';
+        $io->writeln(self::STEP_STYLE . "Navigate to <href=$url>$url</></>");
         return Command::SUCCESS;
     }
 
