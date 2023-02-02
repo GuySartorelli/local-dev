@@ -475,7 +475,9 @@ class Up extends BaseCommand
         $returnVal = false;
         foreach ($prs as $composerName => $details) {
             $io->writeln(self::STEP_STYLE . 'Setting up PR for ' . $composerName . '</>');
-            $io->writeln(self::STEP_STYLE . 'Setting remote ' . $details['remote'] . ' as "pr" and checking out branch ' . $details['prBranch'] . '</>');
+            $prIsCC = str_starts_with($details['remote'], 'git@github.com:creative-commoners/');
+            $remoteName = $prIsCC ? 'cc' : 'pr';
+            $io->writeln(self::STEP_STYLE . 'Setting remote ' . $details['remote'] . ' as "' . $remoteName . '" and checking out branch ' . $details['prBranch'] . '</>');
             $prPath = Path::join($environment->getWebRoot(), 'vendor', $composerName);
             if (!$this->filesystem->exists($prPath)) {
                 // Try composer require-ing it - and if that fails, toss out a warning about it and move on.
@@ -501,9 +503,11 @@ class Up extends BaseCommand
 
             try {
                 $gitRepo = new Repository($prPath);
-                $gitRepo->run('remote', ['add', 'pr', $details['remote']]);
+                if (!$prIsCC) {
+                    $gitRepo->run('remote', ['add', 'pr', $details['remote']]);
+                }
                 $gitRepo->run('fetch', ['--all']);
-                $gitRepo->getWorkingCopy()->checkout('pr/' . $details['prBranch']);
+                $gitRepo->getWorkingCopy()->checkout("$remoteName/" . $details['prBranch']);
             } catch (ProcessException $e) {
                 $this->failCheckout($io, $composerName, $returnVal);
                 continue;
