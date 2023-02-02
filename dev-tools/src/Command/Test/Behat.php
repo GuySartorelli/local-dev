@@ -54,6 +54,13 @@ class Behat extends BaseCommand
         }
         $fileSystem->mkdir($artifactsPath);
 
+        $io->writeln(self::STEP_STYLE . 'Removing old cache.</>');
+        $cachePath = Path::join($env->getWebRoot(), 'silverstripe-cache');
+        if ($fileSystem->exists($cachePath)) {
+            $fileSystem->remove($cachePath);
+        }
+        $fileSystem->mkdir($cachePath);
+
         $io->writeln(self::STEP_STYLE . 'Killing any old chromedriver instances.</>');
         $failureCode = $this->runDockerCommand(
             'DRIVER_PID=$(pgrep chromedriver); if [ -n "$DRIVER_PID" ]; then kill -15 $DRIVER_PID > /dev/null; fi',

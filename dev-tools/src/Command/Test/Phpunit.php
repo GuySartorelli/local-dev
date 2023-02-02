@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Filesystem\Path;
 
 class Phpunit extends BaseCommand
@@ -44,9 +45,19 @@ class Phpunit extends BaseCommand
         $input = $this->getVar('input');
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
+        /** @var Environment $env */
+        $env = $this->getVar('env');
 
         $io->writeln(self::STEP_STYLE . 'Finding directory to run tests in, or exact test file.</>');
         $arg = $this->getPhpunitArg();
+
+        $io->writeln(self::STEP_STYLE . 'Removing old cache.</>');
+        $cachePath = Path::join($env->getWebRoot(), 'silverstripe-cache');
+        $fileSystem = new Filesystem();
+        if ($fileSystem->exists($cachePath)) {
+            $fileSystem->remove($cachePath);
+        }
+        $fileSystem->mkdir($cachePath);
 
         $command = "vendor/bin/phpunit $arg";
         if ($testMethod = $input->getOption('test-method')) {
