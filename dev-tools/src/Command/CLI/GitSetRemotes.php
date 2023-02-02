@@ -46,17 +46,19 @@ class GitSetRemotes extends BaseCommand
         }
 
         // Add cc remote
-        $ccRemote = preg_replace($prefixAndOrgRegex, $ccAccount, $originUrl);
-        $gitRepo->run('remote', ['add', 'cc', $ccRemote]);
+        if (!$input->getOption('security-only')) {
+            $ccRemote = preg_replace($prefixAndOrgRegex, $ccAccount, $originUrl);
+            $gitRepo->run('remote', ['add', 'cc', $ccRemote]);
+        }
 
         // Add security remote
-        if ($input->getOption('include-security')) {
+        if ($input->getOption('include-security') || $input->getOption('security-only')) {
             $securityRemote = preg_replace($prefixAndOrgRegex, $securityAccount, $originUrl);
             $gitRepo->run('remote', ['add', 'security', $securityRemote]);
         }
 
         // Rename origin
-        if ($input->getOption('rename-origin')) {
+        if ($input->getOption('rename-origin') && !$input->getOption('security-only')) {
             $gitRepo->run('remote', ['rename', 'origin', 'orig']);
         }
 
@@ -90,21 +92,28 @@ class GitSetRemotes extends BaseCommand
         );
         $this->addOption(
             'rename-origin',
-            null,
+            'r',
             InputOption::VALUE_NEGATABLE,
             'Rename the "origin" remote to "orig"',
             true
         );
         $this->addOption(
             'include-security',
-            null,
+            's',
             InputOption::VALUE_NEGATABLE,
             'Include the "Security" remote',
-            true
+            false
+        );
+        $this->addOption(
+            'security-only',
+            'o',
+            InputOption::VALUE_NEGATABLE,
+            'Only add the "Security" remote',
+            false
         );
         $this->addOption(
             'fetch',
-            null,
+            'f',
             InputOption::VALUE_NEGATABLE,
             'Run git fetch after defining remotes',
             false
