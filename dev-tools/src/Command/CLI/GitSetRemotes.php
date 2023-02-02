@@ -36,8 +36,6 @@ class GitSetRemotes extends BaseCommand
         $securityAccount = 'git@github.com:silverstripe-security/';
         $prefixAndOrgRegex = '#^(?>git@github\.com:|https://github\.com/).*/#';
 
-        $io->writeln(self::STEP_STYLE . 'Checking out all the remotes</>');
-
         $originUrl = trim($gitRepo->run('remote', ['get-url', 'origin']));
 
         // Validate origin URL
@@ -47,23 +45,27 @@ class GitSetRemotes extends BaseCommand
 
         // Add cc remote
         if (!$input->getOption('security-only')) {
+            $io->writeln(self::STEP_STYLE . 'Adding the creative-commoners remote</>');
             $ccRemote = preg_replace($prefixAndOrgRegex, $ccAccount, $originUrl);
             $gitRepo->run('remote', ['add', 'cc', $ccRemote]);
         }
 
         // Add security remote
         if ($input->getOption('include-security') || $input->getOption('security-only')) {
+            $io->writeln(self::STEP_STYLE . 'Adding the security remote</>');
             $securityRemote = preg_replace($prefixAndOrgRegex, $securityAccount, $originUrl);
             $gitRepo->run('remote', ['add', 'security', $securityRemote]);
         }
 
         // Rename origin
         if ($input->getOption('rename-origin') && !$input->getOption('security-only')) {
+            $io->writeln(self::STEP_STYLE . 'Renaming the origin remote</>');
             $gitRepo->run('remote', ['rename', 'origin', 'orig']);
         }
 
         // Fetch
         if ($input->getOption('fetch')) {
+            $io->writeln(self::STEP_STYLE . 'Fetching all remotes</>');
             $gitRepo->run('fetch', ['--all']);
         }
 
