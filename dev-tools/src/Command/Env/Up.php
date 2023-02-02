@@ -636,7 +636,13 @@ class Up extends BaseCommand
         // Normalise constraints to remove stability flags
         $constraint = preg_replace('/^(dev-|v(?=\d))|-dev|(#|@).*?$/', '', $input->getOption('constraint'));
         $constraint = preg_replace($invalidCharsRegex, '-', trim($constraint, '~^'));
-        return $recipe . '_' . $constraint;
+        $name = $recipe . '_' . $constraint;
+
+        if (!empty($input->getOption('pr'))) {
+            $name .= '_' . 'with-prs';
+        }
+
+        return $name;
     }
 
     /**
