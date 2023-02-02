@@ -46,7 +46,7 @@ class Behat extends BaseCommand
         /** @var Environment $env */
         $env = $this->getVar('env');
 
-        $io->writeln(self::STEP_STYLE . 'Clearing artifacts dir</>');
+        $io->writeln(self::STEP_STYLE . 'Clearing artifacts dir.</>');
         $artifactsPath = Path::join($env->getWebRoot(), 'artifacts');
         $fileSystem = new Filesystem();
         if ($fileSystem->exists($artifactsPath)) {
