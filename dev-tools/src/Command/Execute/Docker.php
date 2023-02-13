@@ -31,10 +31,12 @@ class Docker extends BaseCommand
         if (empty($input->getArgument('exec'))) {
             throw new RuntimeException('"exec" argument must not be empty.');
         }
-        if (!in_array($input->getOption('container'), ['database', 'webserver'])) {
-            throw new RuntimeException('"container" option must be  one of "database" or "webserver".');
-        }
         parent::initialize($input, $output);
+        if (!in_array($input->getOption('container'), ['database', 'webserver'])) {
+            /** @var SymfonyStyle $io */
+            $io = $this->getVar('io');
+            $io->warning('"container" option is non-standard - the container may not exist.');
+        }
     }
 
     /**
@@ -53,6 +55,11 @@ class Docker extends BaseCommand
             case 'webserver':
                 $container = DockerService::CONTAINER_WEBSERVER;
                 break;
+            default:
+                $container = $input->getOption('container');
+                if (!str_starts_with($container, '_')) {
+                    $container = '_' . $container;
+                }
         }
 
         // Run the command

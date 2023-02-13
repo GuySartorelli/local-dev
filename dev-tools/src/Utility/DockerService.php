@@ -144,7 +144,7 @@ final class DockerService
      * Copies a file from a docker container to the host's filesystem.
      *
      * @param string $container Which container to copy from.
-     * Must be one of self::CONTAINER_WEBSERVER or self::CONTAINER_DATABASE
+     * Usually one of self::CONTAINER_WEBSERVER or self::CONTAINER_DATABASE
      * @param string $copyFrom Full file path to copy from in the container.
      * @param string $copyTo Full file path to copy to on the host.
      */
