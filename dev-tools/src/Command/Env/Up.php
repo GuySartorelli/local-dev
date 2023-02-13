@@ -321,24 +321,33 @@ class Up extends BaseCommand
             return $result;
         }
 
-        // Install postgres if appropriate
-        if ($input->getOption('db') === 'postgres') {
+        // Install optional modules if appropriate
+        $result = $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
+
+        // Only returns $result if it represents a failure
+        return $result ?: false;
+    }
+
+    protected function includeOptionalModule(string $moduleName, bool $shouldInclude)
+    {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+
+        if ($shouldInclude) {
             $composerCommand = [
                 'composer',
                 'require',
-                'silverstripe/postgresql',
+                $moduleName,
                 ...$this->prepareComposerArgs('require'),
             ];
 
             // Run composer command
             $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose());
             if ($result === Command::FAILURE) {
-                $io->error('Couldn\'t require postgres module.');
+                $io->error("Couldn't require '$moduleName'.");
                 return $result;
             }
         }
-
-        return false;
     }
 
     /**
