@@ -25,9 +25,6 @@ class Application extends ConsoleApplication
                 case 'flush':
                     $this->setArgTokens($input, ['sake', 'dev', 'flush=1']);
                     break;
-                case 'remotes':
-                    $this->addCommandFirst($input, 'git-set-remotes', true);
-                    break;
             }
         }
         return parent::doRun($input, $output);
@@ -39,15 +36,11 @@ class Application extends ConsoleApplication
         $reflectionMethod->invoke($input, $tokens);
     }
 
-    private function addCommandFirst(ArgvInput $input, string $command, bool $replaceCurrent = false)
+    private function addCommandFirst(ArgvInput $input, string $command)
     {
         // Get the arguments and remove the application itself
         $tokens = $argv ?? $_SERVER['argv'] ?? [];
         array_shift($tokens);
-        // Remove the current 'command' argument if appropriate
-        if ($replaceCurrent) {
-            array_shift($tokens);
-        }
         // Add correct command as the first argument
         array_unshift($tokens, $command);
         $this->setArgTokens($input, $tokens);

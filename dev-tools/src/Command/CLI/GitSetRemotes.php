@@ -82,7 +82,7 @@ class GitSetRemotes extends BaseCommand
      */
     protected function configure(): void
     {
-        $this->setAliases(['git-set-remotes']);
+        $this->setAliases(['git-set-remotes', 'remotes']);
 
         $desc = static::$defaultDescription;
         $this->setHelp($desc);
