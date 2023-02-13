@@ -341,6 +341,7 @@ class Up extends BaseCommand
         // Command::SUCCESS is 0, so $result ?: something-else will always return a failure if there's ANY failure, or success if it's all successful
         $result = $result ?: $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
         $result = $result ?: $this->includeOptionalModule('silverstripe/dynamodb', (bool)$input->getOption('include-dynamodb'));
+        $result = $result ?: $this->includeOptionalModule('silverstripe/frameworktest', (bool)$input->getOption('include-frameworktest'));
 
         // Only returns $result if it represents a failure
         return $result ?: false;
@@ -744,6 +745,13 @@ class Up extends BaseCommand
             null,
             InputOption::VALUE_NEGATABLE,
             'Use a local dynamo db container to store session data.',
+            false
+        );
+        $this->addOption(
+            'include-frameworktest',
+            't',
+            InputOption::VALUE_NEGATABLE,
+            'Include silverstripe/frameworktest even if it isnt in the chosen recipe.',
             false
         );
         $this->addOption(
