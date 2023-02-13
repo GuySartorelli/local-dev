@@ -101,14 +101,14 @@ class GitSetRemotes extends BaseCommand
         );
         $this->addOption(
             'include-security',
-            's',
+            null,
             InputOption::VALUE_NEGATABLE,
             'Include the "Security" remote',
             false
         );
         $this->addOption(
             'security-only',
-            'o',
+            's',
             InputOption::VALUE_NEGATABLE,
             'Only add the "Security" remote',
             false
