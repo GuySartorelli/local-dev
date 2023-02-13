@@ -140,6 +140,22 @@ class Up extends BaseCommand
         $environment = $this->getVar('env');
 
         if (!str_contains($input->getOption('composer-args') ?? '', '--no-install')) {
+            // run vendor/bin/sake dev/tasks/dynamodb-create-table in the docker container
+            if ($input->getOption('include-dynamodb')) {
+                $io->writeln(self::STEP_STYLE . 'Creating DynamoDB sessions table.</>');
+                /** @var BaseCommand $sake */
+                $sake = $this->getApplication()->find('sake');
+                $sake->setIsSubCommand(true);
+                $args = [
+                    '--env-path' => $environment->getBaseDir(),
+                    'task' => ['dev/tasks/dynamodb-create-table'],
+                ];
+                $tableCreated = $sake->run(new ArrayInput($args), $this->getVar('output'));
+                if ($tableCreated !== Command::SUCCESS) {
+                    $io->warning('Could not create DynamoDB sessions table. Do that manually.');
+                }
+            }
+
             // run vendor/bin/sake dev/build in the docker container
             $io->writeln(self::STEP_STYLE . 'Building database.</>');
             /** @var BaseCommand $sake */
@@ -322,7 +338,9 @@ class Up extends BaseCommand
         }
 
         // Install optional modules if appropriate
-        $result = $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
+        // Command::SUCCESS is 0, so $result ?: something-else will always return a failure if there's ANY failure, or success if it's all successful
+        $result = $result ?: $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
+        $result = $result ?: $this->includeOptionalModule('silverstripe/dynamodb', (bool)$input->getOption('include-dynamodb'));
 
         // Only returns $result if it represents a failure
         return $result ?: false;
@@ -605,6 +623,7 @@ class Up extends BaseCommand
             'database' => $input->getOption('db'),
             'dbVersion' => $input->getOption('db-version'),
             'attached' => false,
+            'hasDynamoDb' => $input->getOption('include-dynamodb'),
         ];
 
         return $twig->render($template, $variables);
@@ -719,6 +738,13 @@ class Up extends BaseCommand
             InputOption::VALUE_REQUIRED,
             'The version of the database docker image to be used.',
             'latest'
+        );
+        $this->addOption(
+            'include-dynamodb',
+            null,
+            InputOption::VALUE_NEGATABLE,
+            'Use a local dynamo db container to store session data.',
+            false
         );
         $this->addOption(
             'pr',
