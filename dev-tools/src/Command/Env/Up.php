@@ -341,18 +341,24 @@ class Up extends BaseCommand
         // Command::SUCCESS is 0, so $result ?: something-else will always return a failure if there's ANY failure, or success if it's all successful
         $result = $result ?: $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
         $result = $result ?: $this->includeOptionalModule('silverstripe/dynamodb', (bool)$input->getOption('include-dynamodb'));
-        $result = $result ?: $this->includeOptionalModule('silverstripe/frameworktest', (bool)$input->getOption('include-frameworktest'));
+        $result = $result ?: $this->includeOptionalModule('silverstripe/frameworktest', (bool)$input->getOption('include-frameworktest'), isDev: true);
         // Always include dev docs if we're not using sink, which has it as a dependency
         $result = $result ?: $this->includeOptionalModule('silverstripe/developer-docs', ($input->getOption('recipe') !== 'silverstripe/recipe-kitchen-sink'));
+
+        foreach ($input->getOption('extra-modules') as $module) {
+            $result = $result ?: $this->includeOptionalModule($module);
+        }
 
         // Only returns $result if it represents a failure
         return $result ?: false;
     }
 
-    protected function includeOptionalModule(string $moduleName, bool $shouldInclude)
+    protected function includeOptionalModule(string $moduleName, bool $shouldInclude = true, bool $isDev = false)
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
+
+        $io->writeln(self::STEP_STYLE . "Adding optional module $moduleName</>");
 
         if ($shouldInclude) {
             $composerCommand = [
@@ -755,6 +761,13 @@ class Up extends BaseCommand
             InputOption::VALUE_NEGATABLE,
             'Include silverstripe/frameworktest even if it isnt in the chosen recipe.',
             false
+        );
+        $this->addOption(
+            'extra-modules',
+            'm',
+            InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+            'Any additional modules to be required before dev/build.',
+            []
         );
         $this->addOption(
             'pr',
