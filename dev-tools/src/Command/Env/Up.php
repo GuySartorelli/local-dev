@@ -757,10 +757,10 @@ class Up extends BaseCommand
         );
         $this->addOption(
             'include-frameworktest',
-            't',
+            null,
             InputOption::VALUE_NEGATABLE,
             'Include silverstripe/frameworktest even if it isnt in the chosen recipe.',
-            false
+            true
         );
         $this->addOption(
             'include-recipe-testing',
