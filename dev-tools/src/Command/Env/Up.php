@@ -342,6 +342,7 @@ class Up extends BaseCommand
         $result = $result ?: $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
         $result = $result ?: $this->includeOptionalModule('silverstripe/dynamodb', (bool)$input->getOption('include-dynamodb'));
         $result = $result ?: $this->includeOptionalModule('silverstripe/frameworktest', (bool)$input->getOption('include-frameworktest'), isDev: true);
+        $result = $result ?: $this->includeOptionalModule('silverstripe/recipe-testing', (bool)$input->getOption('include-recipe-testing'), isDev: true);
         // Always include dev docs if we're not using sink, which has it as a dependency
         $result = $result ?: $this->includeOptionalModule('silverstripe/developer-docs', ($input->getOption('recipe') !== 'silverstripe/recipe-kitchen-sink'));
 
@@ -761,6 +762,13 @@ class Up extends BaseCommand
             InputOption::VALUE_NEGATABLE,
             'Include silverstripe/frameworktest even if it isnt in the chosen recipe.',
             false
+        );
+        $this->addOption(
+            'include-recipe-testing',
+            null,
+            InputOption::VALUE_NEGATABLE,
+            'Include silverstripe/recipe-testing even if it isnt in the chosen recipe.',
+            true
         );
         $this->addOption(
             'extra-modules',
