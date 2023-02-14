@@ -342,6 +342,8 @@ class Up extends BaseCommand
         $result = $result ?: $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
         $result = $result ?: $this->includeOptionalModule('silverstripe/dynamodb', (bool)$input->getOption('include-dynamodb'));
         $result = $result ?: $this->includeOptionalModule('silverstripe/frameworktest', (bool)$input->getOption('include-frameworktest'));
+        // Always include dev docs if we're not using sink, which has it as a dependency
+        $result = $result ?: $this->includeOptionalModule('silverstripe/developer-docs', ($input->getOption('recipe') !== 'silverstripe/recipe-kitchen-sink'));
 
         // Only returns $result if it represents a failure
         return $result ?: false;
