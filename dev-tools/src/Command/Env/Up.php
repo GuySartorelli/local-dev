@@ -359,9 +359,8 @@ class Up extends BaseCommand
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
 
-        $io->writeln(self::STEP_STYLE . "Adding optional module $moduleName</>");
-
         if ($shouldInclude) {
+            $io->writeln(self::STEP_STYLE . "Adding optional module $moduleName</>");
             $composerCommand = [
                 'composer',
                 'require',
