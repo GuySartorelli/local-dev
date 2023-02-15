@@ -72,9 +72,11 @@ class Behat extends BaseCommand
 
         $io->writeln(self::STEP_STYLE . 'Starting up chromedriver and running behat.</>');
         $suites = implode(' ', $input->getArgument('modules'));
-        $tags = $input->getOption('tags');
-        if ($tags) {
-            $tags = "--tags=$tags";
+        $tags = array_filter($input->getOption('tag'));
+        if (empty($tags)) {
+            $tags = '';
+        } else {
+            $tags = '--tags=' . implode(',', $tags);
         }
         $failureCode = $this->runDockerCommand(
             "$(chromedriver --log-path=artifacts/chromedriver.log --log-level=INFO > /dev/null 2>&1 &) && vendor/bin/behat $suites $tags",
@@ -114,11 +116,11 @@ class Behat extends BaseCommand
             './'
         );
         $this->addOption(
-            'tags',
+            'tag',
             't',
-            InputOption::VALUE_OPTIONAL,
-            'Tags for specific tests to be run. Leave blank (i.e. --tags=) to run all tests.',
-            'gsat'
+            InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
+            'Tags for specific tests to be run. Leave blank (i.e. --tag=) to run all tests.',
+            ['gsat']
         );
     }
 }
