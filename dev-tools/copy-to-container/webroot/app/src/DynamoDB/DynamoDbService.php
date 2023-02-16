@@ -32,6 +32,8 @@ if (class_exists(DynamoDbClient::class)) {
 
         public static function getCredentials(): mixed
         {
+            $awsAccessKey = Environment::getEnv('AWS_ACCESS_KEY');
+            $awsSecretKey = Environment::getEnv('AWS_SECRET_KEY');
             if (!empty($awsAccessKey) && !empty($awsSecretKey)) {
                 return [
                     'key' => $awsAccessKey,
