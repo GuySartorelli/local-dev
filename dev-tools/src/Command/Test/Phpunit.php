@@ -64,6 +64,11 @@ class Phpunit extends BaseCommand
             $command .= " --filter=$testMethod";
         }
 
+        $module = (string)$input->getOption('module');
+        if ($module === 'dynamodb' || $module === 'silverstripe/dynamodb') {
+            $command .= ' --stderr';
+        }
+
         $io->writeln(self::STEP_STYLE . 'Running PHPUnit.</>');
         $failureCode = $this->runDockerCommand($command, $this->getVar('output'));
         if ($failureCode) {
