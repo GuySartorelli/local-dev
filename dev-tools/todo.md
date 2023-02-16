@@ -5,6 +5,7 @@
     - Might be related to detaching or tearing down an env we're still in
   - If adding a PR fork for something that's a dev dep, we'll get an error.
     - Make it add the forked dep as a dev dep if it's already there as one.
+  - DYNAMODB just doesn't work without a lot of faffing about, including manually settings the volume permissions! WTF!
 
 - Replace "nohup" and/or "> /dev/null 2>&1 &" with docker `-d` (detached mode) which will keep it running in the bg
 - Go through and do all the TODOs from TODO comments in code

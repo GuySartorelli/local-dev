@@ -340,7 +340,7 @@ class Up extends BaseCommand
         // Install optional modules if appropriate
         // Command::SUCCESS is 0, so $result ?: something-else will always return a failure if there's ANY failure, or success if it's all successful
         $result = $result ?: $this->includeOptionalModule('silverstripe/postgresql', ($input->getOption('db') === 'postgres'));
-        $result = $result ?: $this->includeOptionalModule('silverstripe/dynamodb', (bool)$input->getOption('include-dynamodb'));
+        $result = $result ?: $this->includeOptionalModule('silverstripe/dynamodb:' . $input->getOption('constraint'), (bool)$input->getOption('include-dynamodb'));
         $result = $result ?: $this->includeOptionalModule('silverstripe/frameworktest', (bool)$input->getOption('include-frameworktest'), isDev: true);
         $result = $result ?: $this->includeOptionalModule('silverstripe/recipe-testing', (bool)$input->getOption('include-recipe-testing'), isDev: true);
         // Always include dev docs if we're not using sink, which has it as a dependency
@@ -752,7 +752,7 @@ class Up extends BaseCommand
             'include-dynamodb',
             null,
             InputOption::VALUE_NEGATABLE,
-            'Use a local dynamo db container to store session data.',
+            'Use a local dynamo db container to store session data and install silverstripe/dynamodb.',
             false
         );
         $this->addOption(
