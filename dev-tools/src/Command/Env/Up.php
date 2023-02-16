@@ -128,6 +128,8 @@ class Up extends BaseCommand
         $io->success('Completed successfully.');
         $url = $environment->getBaseURL() . '/admin';
         $io->writeln(self::STEP_STYLE . "Navigate to <href=$url>$url</></>");
+        // TODO consider other output that might be useful here...
+        // if I link to a filepath for example will zsh know to cd me there?
         return Command::SUCCESS;
     }
 
