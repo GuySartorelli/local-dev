@@ -27,6 +27,11 @@ abstract class BaseCommand extends Command
     protected static bool $hasEnvironment = true;
 
     /**
+     * If true, we don't throw exceptions on initialize if the dir isn't in an env.
+     */
+    protected static bool $environmentOptional = false;
+
+    /**
      * If true, notifies when a command has finished.
      */
     protected static bool $notifyOnCompletion = false;
@@ -67,7 +72,10 @@ abstract class BaseCommand extends Command
         }
 
         if ($proposedPath) {
-            $env = new Environment(Path::makeAbsolute(Path::canonicalize($proposedPath), getcwd()));
+            $env = new Environment(
+                Path::makeAbsolute(Path::canonicalize($proposedPath), getcwd()),
+                allowMissing: static::$environmentOptional
+            );
             $this->setVar('env', $env);
         }
     }

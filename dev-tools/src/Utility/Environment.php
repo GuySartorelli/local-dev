@@ -23,9 +23,9 @@ final class Environment
     /**
      * @throws LogicException if not a new environment and $path is not in a valid environment.
      */
-    public function __construct(string $path, bool $isNew = false)
+    public function __construct(string $path, bool $isNew = false, bool $allowMissing = false)
     {
-        $this->setBaseDir($path, $isNew);
+        $this->setBaseDir($path, $isNew, $allowMissing);
         $this->setName();
         $this->suffix = substr($this->name, -2);
         $this->composerService = new ComposerJsonService($this->getWebRoot());
@@ -89,18 +89,31 @@ final class Environment
         return file_exists(Path::join($this->getBaseDir(), self::ATTACHED_ENV_FILE));
     }
 
-    private function setBaseDir(string $candidate, bool $isNew): void
+    public function exists(): bool
+    {
+        return is_dir($this->getBaseDir());
+    }
+
+    private function setBaseDir(string $candidate, bool $isNew, bool $allowMissing): void
     {
         if ($isNew) {
             $this->baseDir = $candidate;
             return;
         }
 
+        $this->baseDir = (string)$this->findBaseDirForEnv($candidate);
+
+        if (!$this->baseDir && !$allowMissing) {
+            throw new LogicException("Environment path '$candidate' is not inside a valid environment.");
+        }
+    }
+
+    private function findBaseDirForEnv(string $candidate): ?string
+    {
         if (!is_dir($candidate)) {
             throw new LogicException("'$candidate' is not a directory.");
         }
 
-        $origDir = $candidate;
         $stopAtDirs = [
             '/',
             '/home',
@@ -111,8 +124,7 @@ final class Environment
         while ($candidate && !in_array($candidate, $stopAtDirs)) {
             // environments created using the attach command will have a special .dev-tools-env file
             if (file_exists(Path::join($candidate, self::ATTACHED_ENV_FILE))) {
-                $this->baseDir = $candidate;
-                return;
+                return $candidate;
             }
 
             // All environment directories end with an underscore and two digits (e.g. "_00")
@@ -129,15 +141,14 @@ final class Environment
                     }
                 }
                 if ($found === 3) {
-                    $this->baseDir = $candidate;
-                    return;
+                    return $candidate;
                 }
             }
             // If the directory is invalid, check its parent next.
             $candidate = Path::getDirectory($candidate);
         }
 
-        throw new LogicException("Environment path '$origDir' is not inside a valid environment.");
+        return null;
     }
 
     private function setName()
