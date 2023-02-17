@@ -34,7 +34,7 @@
   - Create me a new PR branch
     - "pulls/$CURRENT_BRANCH/$DESCRIPTION"
   - Push the current PR branch
-    - Runs `dev-tools lint-php`
+    - Runs `dev-tools lint-php -m $(basename $PWD)`
     - Checks for correct naming convention
     - Pushes to creative-commoners by default
 - Set up a meta web server
