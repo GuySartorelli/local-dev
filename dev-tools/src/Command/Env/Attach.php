@@ -359,7 +359,7 @@ class Attach extends BaseCommand
         $dirs = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($templateRoot));
         foreach ($dirs as $file) {
             /** @var SplFileInfo $file */
-            if ($file->isDir()){
+            if ($file->isDir()) {
                 continue;
             }
             $template = Path::makeRelative($file->getPathname(), Config::getTemplateDir());

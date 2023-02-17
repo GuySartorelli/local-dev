@@ -48,7 +48,7 @@ class Docker extends BaseCommand
         $io = $this->getVar('io');
         $command = $input->getArgument('exec');
 
-        switch($input->getOption('container')) {
+        switch ($input->getOption('container')) {
             case 'database':
                 $container = DockerService::CONTAINER_DATABASE;
                 break;

@@ -36,7 +36,7 @@ class ComposerJsonService
     {
         $this->fileSystem->dumpFile(
             $this->path,
-            json_encode($content, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES)
+            json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
         );
     }
 

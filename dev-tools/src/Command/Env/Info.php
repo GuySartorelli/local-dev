@@ -52,7 +52,7 @@ class Info extends BaseCommand
             "{$env->getIpAddress()}",
             $canCheckContainer ? ($phpService->debugIsEnabled() ? 'On' : 'Off') : null,
             $canCheckContainer ? $phpService->getCliPhpVersion() : null,
-            $canCheckContainer ? $phpService->getApachePhpVersion(): null,
+            $canCheckContainer ? $phpService->getApachePhpVersion() : null,
             implode(', ', PHPService::getAvailableVersions()),
             ...array_values($containers),
         ]]);

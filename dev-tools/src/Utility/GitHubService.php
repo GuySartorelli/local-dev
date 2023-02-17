@@ -59,5 +59,4 @@ class GitHubService
         $composerJson = $client->repo()->contents()->download($pr['org'], $pr['repo'], 'composer.json');
         return json_decode($composerJson, true)['name'];
     }
-
 }

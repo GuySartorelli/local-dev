@@ -214,5 +214,4 @@ class PhpConfig extends BaseCommand
             './'
         );
     }
-
 }

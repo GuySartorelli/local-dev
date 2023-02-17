@@ -143,8 +143,7 @@ abstract class BaseCommand extends Command
         bool $suppressMessages = false,
         bool $interactive = false,
         string $container = DockerService::CONTAINER_WEBSERVER
-    ): string|int|bool
-    {
+    ): string|int|bool {
         if (!static::$hasEnvironment) {
             throw new BadMethodCallException('runDockerCommand() is not set up to work without an environment');
         }
