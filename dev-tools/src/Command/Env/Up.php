@@ -650,6 +650,10 @@ class Up extends BaseCommand
         if (isset(static::$recipeShortcuts[$recipe])) {
             $input->setOption('recipe', static::$recipeShortcuts[$recipe]);
         }
+        // see https://getcomposer.org/doc/04-schema.md#name for regex
+        if (!preg_match('%^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]?|-{0,2})[a-z0-9]+)*$%', $input->getOption('recipe'))) {
+            throw new LogicException('recipe must be a valid composer package name.');
+        }
     }
 
     /**
