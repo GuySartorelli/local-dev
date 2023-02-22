@@ -35,7 +35,6 @@ $application->setDefinition(
 $application->addCommands([
     new Command\CLI\AddComposerPullRequest(),
     new Command\CLI\GitSetRemotes(),
-    new Command\CLI\LintPhp(),
     new Command\Env\Up(),
     new Command\Env\Down(),
     new Command\Env\Attach(),
@@ -45,6 +44,7 @@ $application->addCommands([
     new Command\Execute\Docker(),
     new Command\Execute\Sake(),
     new Command\Test\Behat(),
+    new Command\Test\LintPhp(),
     new Command\Test\Phpunit(),
     new Command\Database\Dump(),
 ]);

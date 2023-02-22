@@ -3,6 +3,7 @@
 namespace DevTools\Command\Test;
 
 use DevTools\Command\BaseCommand;
+use DevTools\Command\FindsModule;
 use DevTools\Utility\Environment;
 use InvalidArgumentException;
 use RuntimeException;
@@ -16,6 +17,8 @@ use Symfony\Component\Filesystem\Path;
 
 class Phpunit extends BaseCommand
 {
+    use FindsModule;
+
     protected static $defaultName = 'test:phpunit';
 
     protected static $defaultDescription = 'Run PHPUnit in the webserver docker container.';
@@ -30,6 +33,7 @@ class Phpunit extends BaseCommand
         if (!$this->isSubCommand && !$input->getOption('quiet') && !$input->getOption('verbose')) {
             $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
         }
+        $this->normaliseModuleInput($input);
         if (empty($input->getOption('module')) && empty($input->getOption('test-class'))) {
             throw new RuntimeException('At least one of "module" or "test-class" must be passed in.');
         }
@@ -88,18 +92,17 @@ class Phpunit extends BaseCommand
 
         $testClass = $input->getOption('test-class');
         $module = $input->getOption('module');
-        $vendorDir = 'vendor';
-        $searchDir = $vendorDir;
+        $searchDir = 'vendor';
 
         // Search for the directory the module is in
         if ($module) {
-            $searchDir = $this->getModuleDir($vendorDir, $module);
+            $searchDir = $this->getModuleDir($module);
             if (!$testClass) {
                 return $searchDir;
             }
         }
 
-        // TODO: Make (or reuse an existing) recursive function instead of duplicating logic below and in getModuleDir
+        // TODO: Make (or reuse an existing) recursive function instead of duplicating logic here and in FindsModule
 
         // We need to find the file for this test class. We'll assume PSR-4 compliance.
         // Recursively check everything from the search dir down until we either find it or fail to find it
@@ -128,49 +131,6 @@ class Phpunit extends BaseCommand
         }
         // If we get to this point, we weren't able to find that test class.
         throw new InvalidArgumentException("Test class '$testClass' was not found.");
-    }
-
-    private function getModuleDir(string $vendorDir, string $module): string
-    {
-        /** @var Environment $env */
-        $env = $this->getVar('env');
-        $vendorDirAbsolute = Path::join($env->getWebRoot(), $vendorDir);
-
-        if (str_contains($module, '/')) {
-            return Path::join($vendorDir, $module);
-        } else {
-            $checked = [];
-            // Look at all the org dirs in the vendor directory
-            foreach (scandir($vendorDirAbsolute) as $orgDir) {
-                if ($orgDir === '.' || $orgDir === '..') {
-                    continue;
-                }
-
-                $currentPath = Path::join($vendorDirAbsolute, $orgDir);
-
-                if (is_dir($currentPath) && !array_key_exists($currentPath, $checked)) {
-                    // Look at all repo dirs in each organisation directory
-                    foreach (scandir($currentPath) as $repoDir) {
-                        if ($repoDir === '.' || $repoDir === '..') {
-                            continue;
-                        }
-
-                        $repoPath = Path::join($currentPath, $repoDir);
-
-                        if ($repoDir === $module && is_dir($repoPath) && !array_key_exists($repoPath, $checked)) {
-                            // Found the correct module (assuming there aren't duplicate module names across orgs)
-                            return Path::join($vendorDir, $orgDir, $repoDir);
-                        }
-
-                        $checked[$repoPath] = true;
-                    }
-                }
-
-                $checked[$currentPath] = true;
-            }
-        }
-        // If we get to this point, we weren't able to find that module.
-        throw new InvalidArgumentException("Module '$module' was not found.");
     }
 
     /**
