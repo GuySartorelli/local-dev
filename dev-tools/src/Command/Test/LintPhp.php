@@ -149,13 +149,13 @@ class LintPhp extends BaseCommand
         $this->addArgument(
             'lint-path',
             InputArgument::IS_ARRAY | InputArgument::OPTIONAL,
-            'A path(s) to lint. If run inside an environment, this is relative to the project root for the env. If module is defined, this is relative to the module.'
+            'A path(s) to lint. If run inside an environment, this is relative to the project root for the env. If module is defined, this is relative to the module. If not set, there are a series of default paths that will be linted.'
         );
         $this->addOption(
             'env-path',
             null,
             InputOption::VALUE_OPTIONAL,
-            'The full path to the directory of the environment.',
+            'The full path to the directory of the environment, if any.',
             './'
         );
         $this->addOption(
@@ -168,13 +168,13 @@ class LintPhp extends BaseCommand
             'standard',
             's',
             InputOption::VALUE_OPTIONAL,
-            'A specific standard to lint against.'
+            'A specific standard to lint against. Defaults to the standard defined in the module, if any.'
         );
         $this->addOption(
             'module',
             'm',
             InputOption::VALUE_OPTIONAL,
-            'A module to run linting against. If set, you must be targetting a dev-tools environment.'
+            'A module to run linting against. Defaults to the module of your current working dir, if any.'
         );
     }
 }
