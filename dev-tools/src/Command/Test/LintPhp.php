@@ -37,11 +37,6 @@ class LintPhp extends BaseCommand
         }
         parent::initialize($input, $output);
         $this->normaliseInput($input);
-        // /** @var Environment $env */
-        // $env = $this->getVar('env');
-        // if ($input->getOption('module') && !$env->exists()) {
-        //     throw new LogicException('Must be inside a valid environment if "module" option is used.');
-        // }
     }
 
     /**
