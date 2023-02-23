@@ -65,6 +65,7 @@ class Up extends BaseCommand
         parent::initialize($input, $output);
         $this->filesystem = new Filesystem();
         $this->normaliseRecipe();
+        $this->normaliseName();
         if (str_contains($input->getOption('composer-args') ?? '', '--no-install') && !empty($input->getOption('pr'))) {
             $this->getVar('io')->warning('Composer --no-install has been set. Cannot checkout PRs.');
             $this->setVar('prs', []);
@@ -85,7 +86,7 @@ class Up extends BaseCommand
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
         $suffix = Config::getNextAvailableSuffix();
-        $envName = $this->getEnvName() . '_' . $suffix;
+        $envName = $input->getArgument('env-name') . '_' . $suffix;
         $this->setVar('env', $environment = new Environment(Path::join($input->getOption('project-path'), $envName), true));
 
         // Take this first, so that if there's an uncaught exception it doesn't prevent creating
@@ -656,23 +657,43 @@ class Up extends BaseCommand
         }
     }
 
-    /**
-     * Gets the environment name based on the input arguments and options
-     */
-    protected function getEnvName(): string
+    protected function normaliseName(): void
     {
+        /** @var InputInterface $input */
         $input = $this->getVar('input');
-        $invalidCharsRegex = '/[' . preg_quote(static::$invalidEnvNameChars, '/') . ']/';
-        // Use env name if defined
-        if ($name = $input->getArgument('env-name')) {
-            if (preg_match($invalidCharsRegex, $name)) {
-                throw new LogicException(
-                    'env-name must not contain the following characters: ' . static::$invalidEnvNameChars
-                );
-            }
-            return $name;
+        /** @var SynfomyStyle $io */
+        $io = $this->getVar('io');
+
+        $defaultName = $this->getDefaultEnvName();
+        $name = $input->getArgument('env-name');
+
+        while (!$this->validateEnvName($name)) {
+            $name = $io->ask('Name this environment.', $defaultName);
         }
 
+        $input->setArgument('env-name', $name);
+    }
+
+    private function validateEnvName(?string $name): bool
+    {
+        /** @var SynfomyStyle $io */
+        $io = $this->getVar('io');
+        if (!$name) {
+            return false;
+        }
+        $invalidCharsRegex = '/[' . preg_quote(static::$invalidEnvNameChars, '/') . ']/';
+        $valid = !preg_match($invalidCharsRegex, $name);
+        if (!$valid) {
+            $io->warning('env-name must not contain the following characters: ' . static::$invalidEnvNameChars);
+        }
+        return $valid;
+    }
+
+    protected function getDefaultEnvName(): string
+    {
+        /** @var InputInterface $input */
+        $input = $this->getVar('input');
+        $invalidCharsRegex = '/[' . preg_quote(static::$invalidEnvNameChars, '/') . ']/';
         // Normalise recipe by replacing 'invalid' chars with hyphen
         $recipeParts = explode('-', preg_replace($invalidCharsRegex, '-', $input->getOption('recipe')));
         $recipe = end($recipeParts);
