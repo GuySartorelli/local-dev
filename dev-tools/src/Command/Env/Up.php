@@ -102,6 +102,10 @@ class Up extends BaseCommand
 
         // Create webdir so that docker has it for use in its volume
         $this->filesystem->mkdir($environment->getWebRoot());
+        // Make dynamodb file early if needed so it has the right permissions (docker will create it as root otherwise)
+        if ($input->getOption('include-dynamodb')) {
+            $this->filesystem->mkdir(Path::join($environment->getBaseDir(), 'dynamodb'));
+        }
 
         // Docker stuff
         $failureCode = $this->spinUpDocker();
@@ -214,6 +218,8 @@ class Up extends BaseCommand
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
+        /** @var InputInterface $input */
+        $input = $this->getVar('input');
         /** @var Environment $environment */
         $environment = $this->getVar('env');
         $webDir = $environment->getWebRoot();
@@ -241,6 +247,9 @@ class Up extends BaseCommand
             $io->writeln(self::STEP_STYLE . 'Preparing extra webroot files</>');
             // Copy files that don't rely on variables
             $this->filesystem->mirror(Path::join(Config::getCopyDir(), 'webroot'), $webDir, options: ['override' => true]);
+            if ($input->getOption('include-dynamodb')) {
+                $this->filesystem->mirror(Path::join(Config::getCopyDir(), 'webroot-feature-locked/dynamo-db'), $webDir, options: ['override' => true]);
+            }
             // Render twig templates for anything else
             $templateRoot = Path::join(Config::getTemplateDir(), 'webroot');
             $this->renderTemplateDir($templateRoot, $webDir);

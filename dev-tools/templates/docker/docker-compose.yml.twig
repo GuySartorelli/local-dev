@@ -53,7 +53,7 @@ services:
     command: "-jar DynamoDBLocal.jar -sharedDb -dbPath ./data"
     restart: always
     volumes:
-      - dynamodb-volume:/home/dynamodblocal/data
+      - ../dynamodb/:/home/dynamodblocal/data
     working_dir: /home/dynamodblocal
     networks:
       mynet:
@@ -62,9 +62,6 @@ services:
 volumes:
   database-volume:
     name: {{projectName}}_database-volume
-{% if hasDynamoDb %}
-  dynamodb-volume:
-    name: {{projectName}}_dynamodb-volume
 {% endif %}
 
 networks:
