@@ -36,6 +36,7 @@ $application->addCommands([
     new Command\CLI\AddComposerPullRequest(),
     new Command\CLI\ComposerInstallInDump(),
     new Command\CLI\GitSetRemotes(),
+    new Command\CLI\MergeUp(),
     new Command\Env\Up(),
     new Command\Env\Down(),
     new Command\Env\Attach(),
