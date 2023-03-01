@@ -493,6 +493,11 @@ class Up extends BaseCommand
             return false;
         }
 
+        if (!$input->getOption('prefer-source')) {
+            $io->warning('Can\'t add pull requests without prefer-source.');
+            return Command::FAILURE;
+        }
+
         if ($input->getOption('pr-has-deps')) {
             // Add prs to composer.json
             $io->writeln(self::STEP_STYLE . 'Adding PRs to composer.json</>');
