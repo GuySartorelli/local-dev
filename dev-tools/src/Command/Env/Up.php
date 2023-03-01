@@ -560,7 +560,7 @@ class Up extends BaseCommand
                     $gitRepo->run('remote', ['add', 'pr', $details['remote']]);
                 }
                 $gitRepo->run('fetch', ['--all']);
-                $gitRepo->getWorkingCopy()->checkout("$remoteName/" . $details['prBranch']);
+                $gitRepo->run('checkout', ["$remoteName/" . $details['prBranch'], '--track', '--no-guess']);
             } catch (ProcessException $e) {
                 $this->failCheckout($io, $composerName, $returnVal);
                 continue;
