@@ -650,6 +650,7 @@ class Up extends BaseCommand
             'dbVersion' => $input->getOption('db-version'),
             'attached' => false,
             'hasDynamoDb' => $input->getOption('include-dynamodb'),
+            'githubToken' => Config::getEnv('DT_GITHUB_TOKEN'),
         ];
 
         return $twig->render($template, $variables);
