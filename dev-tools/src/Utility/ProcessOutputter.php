@@ -25,6 +25,8 @@ class ProcessOutputter
             if (!$this->progressBar) {
                 throw new LogicException('You forgot to call startCommand()');
             }
+            $lines = array_filter(explode(PHP_EOL, $buffer));
+            $this->progressBar->setMessage(end($lines));
             $this->progressBar->advance();
         } else {
             $this->output->write($buffer);
@@ -38,7 +40,8 @@ class ProcessOutputter
                 $this->output = new SymfonyStyle(new ArrayInput([]), $this->output);
             }
             $this->progressBar = $this->output->createProgressBar();
-            $this->progressBar->setFormat('Current step: %bar% %elapsed:6s%');
+            // $this->progressBar->setFormat('Current step: %bar% %elapsed:6s%');
+            $this->progressBar->setFormat('%message% <info>(%elapsed:4s%)</info>');
             $this->progressBar->start();
         }
     }
