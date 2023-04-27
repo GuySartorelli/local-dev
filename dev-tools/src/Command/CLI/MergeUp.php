@@ -66,25 +66,38 @@ class MergeUp extends BaseCommand
 
         foreach ($mergeUps as $mergeupData) {
             $repoDir = Path::join($mergeupDir, $mergeupData['repo']);
-            $alreadyMerged = false;
+            $needsMerge = false;
 
             $io->writeln(self::STEP_STYLE . "Starting mergeup for '{$mergeupData['repo']}' from {$mergeupData['mergeFrom']} to {$mergeupData['mergeTo']}</>");
 
-            // Check if we've merged already or not.
             if (is_dir($repoDir)) {
+                // Check if merge was already completed
                 $alreadyMerged = $this->checkAlreadyMerged($repoDir);
                 if (is_int($alreadyMerged)) {
                     return $alreadyMerged;
                 }
+                if ($alreadyMerged) {
+                    continue;
+                }
+
+                // Check if westill need to do the merge process or not.
+                $needsMerge = $this->checkStillNeedsMerge($repoDir);
+                if (is_int($needsMerge)) {
+                    return $needsMerge;
+                }
             }
+            // Swap to mergeup dir because sometimes getcwd() fails unless explicitly set
+            chdir($mergeupDir);
 
             // Merge up, if we haven't already.
-            if (!$alreadyMerged) {
+            if (!$needsMerge) {
                 $done = $this->startMerge($repoDir, $mergeupData);
                 if ($done !== Command::SUCCESS) {
                     return $done;
                 }
             }
+            // Swap to mergeup dir because sometimes getcwd() fails unless explicitly set
+            chdir($mergeupDir);
 
             $repo = new Repository($repoDir);
             $actions = $repo->getWorkingCopy();
@@ -117,16 +130,16 @@ class MergeUp extends BaseCommand
                 $io->warning('Merge commit not pushed. Push the commit yourself.');
                 $canClearMergeupDir = false;
             }
-
-            if ($canClearMergeupDir) {
-                $io->writeln(self::STEP_STYLE . 'Clearing mergeup dir</>');
-                $fileSystem = new Filesystem();
-                $fileSystem->remove($mergeupDir);
-                $fileSystem->mkdir($mergeupDir);
-            } else {
-                $io->warning('Cannot clear mergeup dir. Do that after whatever you still need to do.');
-            }
             $io->success("Finished merge up for {$mergeupData['repo']}");
+        }
+
+        if ($canClearMergeupDir) {
+            $io->writeln(self::STEP_STYLE . 'Clearing mergeup dir</>');
+            $fileSystem = new Filesystem();
+            $fileSystem->remove($mergeupDir);
+            $fileSystem->mkdir($mergeupDir);
+        } else {
+            $io->warning('Cannot clear mergeup dir. Do that after whatever you still need to do.');
         }
 
         $io->success('Merged up successfully');
@@ -134,6 +147,29 @@ class MergeUp extends BaseCommand
     }
 
     private function checkAlreadyMerged(string $repoDir): int|bool
+    {
+        /** @var SymfonyStyle $io */
+        $io = $this->getVar('io');
+
+        $repo = new Repository($repoDir);
+        try {
+            $status = $repo->run('status');
+            if (str_contains($status, 'nothing to commit, working tree clean')) {
+                $io->writeln(self::STEP_STYLE . 'Already merged. Skipping.</>');
+                return true;
+            }
+        } catch (ProcessException $e) {
+            if (str_contains($e->getMessage(), 'not a git repository')) {
+                $io->error("$repoDir exists but isn't a git repository. You've done something weird.");
+                return Command::FAILURE;
+            }
+            throw $e;
+        }
+
+        return false;
+    }
+
+    private function checkStillNeedsMerge(string $repoDir): int|bool
     {
         /** @var SymfonyStyle $io */
         $io = $this->getVar('io');
@@ -150,7 +186,7 @@ class MergeUp extends BaseCommand
                 return Command::FAILURE;
             }
             // TODO: Detect more unexpected states (e.g. merged but already committed).
-            if (str_contains($status, 'Changes not staged for commit') || str_contains($status, 'nothing to commit, working tree clean')) {
+            if (str_contains($status, 'Changes not staged for commit')) {
                 $io->error("$repoDir is in an unexpected state. You've done something weird.");
                 return Command::FAILURE;
             }
