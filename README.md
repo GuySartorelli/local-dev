@@ -2,8 +2,14 @@
 - Run `composer install` inside the `./dev-tools/` directory.
 - Run `cp ./dev-tools/.env.example ./dev-tools/.env`
   - Fill in and change details as appropriate
-- Add the bin directory to $PATH in your .bashrc
-  - e.g.: `export PATH=$PATH:/home/$USER/local-dev/bin`
+- Add the bin directory to $PATH.
+  | Shell           | Command                                                                     |
+  | --------------- | --------------------------------------------------------------------------- |
+  | BASH            | `export PATH=$PATH:$HOME/local-dev/dev-tools/bin`                     |
+  | BASH Permanent  | `echo 'export PATH=$PATH:$HOME/local-dev/dev-tools/bin' >> ~/.bashrc` |
+  | Fish            | `fish_add_path $HOME/local-dev/dev-tools/bin`                         |
+  | ZSH             | `export PATH=$PATH:$HOME/local-dev/dev-tools/bin`                     |
+  | ZSH Permanent   | `echo 'export PATH=$PATH:$HOME/local-dev/dev-tools/bin' >> ~/.zshrc`  |
 
 ## Usage
 - Run `dev-tools list` to see available commands and usage.
