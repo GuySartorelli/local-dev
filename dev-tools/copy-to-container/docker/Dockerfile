@@ -112,31 +112,28 @@ RUN apt-get install -y php8.2-xdebug
 RUN apt-get install -y php8.2-zip
 
 # Install other packages
-RUN apt-get install -y nano
+RUN apt-get install -y nano wget curl unzip jq
 
-# Install WKHTMLTOPDF QT ptached (not working for some reason)
+# Install WKHTMLTOPDF QT patched (not working for some reason)
 # RUN apt-get install -y fontconfig libxrender1 xfonts-75dpi xfonts-base
 # RUN wget https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.focal_amd64.deb
 # RUN dpkg -i wkhtmltox_0.12.6-1.focal_amd64.deb
 # RUN cp /usr/local/bin/wkhtmltopdf /usr/bin/
 # RUN cp /usr/local/bin/wkhtmltoimage /usr/bin/
 
-# Install chromium + chromedriver manually rather than with apt to ensure we get the latest version
-# also on 20.04 apt install chromium will use snap which does not work in docker
-# Increment echo 1 to get a more recent version of chrome
-RUN apt-get install -y wget unzip && \
-    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
-    apt install -f -y ./google-chrome-stable_current_amd64.deb && \
-    BROWSER_MAJOR=$(google-chrome --version | sed 's/Google Chrome \([0-9]*\).*/\1/g') && \
-    wget https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${BROWSER_MAJOR} -O chrome_version && \
-    wget https://chromedriver.storage.googleapis.com/`cat chrome_version`/chromedriver_linux64.zip && \
-    unzip chromedriver_linux64.zip && \
-    mv chromedriver /usr/local/bin/ && \
-    DRIVER_MAJOR=$(chromedriver --version | sed 's/ChromeDriver \([0-9]*\).*/\1/g') && \
-    echo "chrome version: $BROWSER_MAJOR" && \
-    echo "chromedriver version: $DRIVER_MAJOR" && \
-    if [ $BROWSER_MAJOR != $DRIVER_MAJOR ]; then echo "VERSION MISMATCH"; exit 1; fi && \
-    echo 1 > /dev/null
+# Need to fix error when trying to running chrome
+# "Error while loading shared libraries: libnss3.so" and "error while loading shared libraries: libasound.so.2"
+RUN apt-get install -y libnss3-dev libgdk-pixbuf2.0-dev libgtk-3-dev libxss-dev libasound2
+# Get latest versions of chrome + chromedriver from json endpoint
+RUN curl https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json > chrome.json
+# Install chrome
+RUN wget $(cat chrome.json | jq -r '.channels.Stable.downloads.chrome[] | select(.platform == "linux64").url')
+RUN unzip chrome-linux64.zip
+RUN ln -s $(pwd)/chrome-linux64/chrome /usr/bin/chrome
+# Install chromedriver
+RUN wget $(cat chrome.json | jq -r '.channels.Stable.downloads.chromedriver[] | select(.platform == "linux64").url')
+RUN unzip chromedriver-linux64.zip
+RUN ln -s $(pwd)/chromedriver-linux64/chromedriver /usr/bin/chromedriver
 
 # Put localhost in place
 COPY docker_apache_default /etc/apache2/sites-available/000-default.conf

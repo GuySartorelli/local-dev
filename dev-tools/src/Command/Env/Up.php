@@ -501,7 +501,7 @@ class Up extends BaseCommand
         if ($input->getOption('pr-has-deps')) {
             // Add prs to composer.json
             $io->writeln(self::STEP_STYLE . 'Adding PRs to composer.json</>');
-            $composerService = new ComposerJsonService($env->getBaseDir());
+            $composerService = new ComposerJsonService($env->getWebRoot());
             $composerService->addForks($prs);
             $composerService->addForkedDeps($prs);
 
