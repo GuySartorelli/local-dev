@@ -82,6 +82,7 @@ class Dump extends BaseCommand
             container: DockerService::CONTAINER_DATABASE
         );
         if ($failureCode) {
+            $io->error('Problem occured during cleanup.');
             return $failureCode;
         }
 
@@ -94,7 +95,7 @@ class Dump extends BaseCommand
      */
     protected function configure(): void
     {
-        $this->setAliases(['db-dump']);
+        $this->setAliases(['dump']);
 
         $desc = static::$defaultDescription;
         $this->setHelp(<<<HELP
