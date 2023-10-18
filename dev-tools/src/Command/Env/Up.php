@@ -343,7 +343,7 @@ class Up extends BaseCommand
         $composerCommand = $this->prepareComposerCommand('create-project');
 
         // Run composer command
-        $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose());
+        $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose(), interactive: true);
         if ($result === Command::FAILURE) {
             $io->error('Couldn\'t create composer project.');
             return $result;
@@ -381,7 +381,7 @@ class Up extends BaseCommand
             ];
 
             // Run composer command
-            $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose());
+            $result = $this->runDockerCommand(implode(' ', $composerCommand), $this->getVar('output'), suppressMessages: !$io->isVerbose(), interactive: true);
             if ($result === Command::FAILURE) {
                 $io->error("Couldn't require '$moduleName'.");
                 return $result;

@@ -17,7 +17,7 @@ class Application extends ConsoleApplication
             $command = $input->getFirstArgument();
             switch ($command) {
                 case 'composer':
-                    $this->addCommandFirst($input, 'docker');
+                    $this->addCommandFirst($input, 'docker', ['-i']);
                     break;
                 case 'dev/build':
                     $this->addCommandFirst($input, 'sake');
@@ -36,11 +36,15 @@ class Application extends ConsoleApplication
         $reflectionMethod->invoke($input, $tokens);
     }
 
-    private function addCommandFirst(ArgvInput $input, string $command)
+    private function addCommandFirst(ArgvInput $input, string $command, array $extraArgs = [])
     {
         // Get the arguments and remove the application itself
         $tokens = $argv ?? $_SERVER['argv'] ?? [];
         array_shift($tokens);
+        // Add extra args - make sure they immediately follow the command
+        foreach (array_reverse($extraArgs) as $arg) {
+            array_unshift($tokens, $arg);
+        }
         // Add correct command as the first argument
         array_unshift($tokens, $command);
         $this->setArgTokens($input, $tokens);
