@@ -160,6 +160,25 @@ final class DockerService
     }
 
     /**
+     * Copies a file from the host's filesystem to a docker container.
+     *
+     * @param string $container Which container to copy to.
+     * Usually one of self::CONTAINER_WEBSERVER or self::CONTAINER_DATABASE
+     * @param string $copyFrom Full file path to copy from on the host.
+     * @param string $copyTo Full file path to copy to in the container.
+     */
+    public function copyToContainer(string $container, string $copyFrom, string $copyTo): bool
+    {
+        $command = [
+            'docker',
+            'cp',
+            $copyFrom,
+            $this->environment->getName() . "$container:$copyTo",
+        ];
+        return $this->runCommand($command);
+    }
+
+    /**
      * Run some command in the webserver docker container - optionally as root.
      * @throws InvalidArgumentException
      */

@@ -49,6 +49,7 @@ $application->addCommands([
     new Command\Test\LintPhp(),
     new Command\Test\Phpunit(),
     new Command\Database\Dump(),
+    new Command\Database\Restore(),
 ]);
 
 // start
