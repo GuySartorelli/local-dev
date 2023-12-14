@@ -1,3 +1,7 @@
+# DISCONTINUED
+
+Use [extended DDEV](https://github.com/GuySartorelli/extended-ddev) instead.
+
 ## Setup
 - Run `composer install` inside the `./dev-tools/` directory.
 - Run `cp ./dev-tools/.env.example ./dev-tools/.env`
